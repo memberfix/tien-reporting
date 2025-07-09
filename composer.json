@@ -1,0 +1,27 @@
+{
+    "name": "mfx/reporting",
+    "description": "WooCommerce Reporting Plugin with Google Sheets Integration",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "MFX Team",
+            "email": "info@mfx.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "google/apiclient": "^2.15"
+    },
+    "autoload": {
+        "psr-4": {
+            "MFX_Reporting\\": "includes/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
