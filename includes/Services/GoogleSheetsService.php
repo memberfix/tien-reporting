@@ -244,23 +244,75 @@ class GoogleSheetsService {
      * Disconnect user (revoke tokens)
      */
     public function disconnect() {
-        $access_token = get_option('mfx_reporting_google_access_token');
+        try {
+            $access_token = get_option('mfx_google_access_token');
+            
+            if ($access_token) {
+                // Revoke the token
+                wp_remote_post('https://oauth2.googleapis.com/revoke', [
+                    'body' => ['token' => $access_token],
+                    'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
+                ]);
+            }
+            
+            // Clear stored tokens
+            delete_option('mfx_google_access_token');
+            delete_option('mfx_google_refresh_token');
+            delete_option('mfx_google_token_expires');
+            
+            return [
+                'success' => true,
+                'message' => 'Successfully disconnected from Google Sheets.'
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error disconnecting: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Save scheduled reports settings
+     */
+    public function saveScheduledReports($data) {
+        $scheduled_reports = [];
         
-        if ($access_token) {
-            // Revoke token
-            wp_remote_post('https://oauth2.googleapis.com/revoke', [
-                'body' => ['token' => $access_token]
-            ]);
+        // Process daily reports
+        if (!empty($data['daily_enabled'])) {
+            $scheduled_reports['daily'] = [
+                'enabled' => true,
+                'spreadsheet_id' => sanitize_text_field($data['daily_spreadsheet'] ?? ''),
+                'worksheet_name' => sanitize_text_field($data['daily_worksheet'] ?? 'Daily Reports')
+            ];
         }
         
-        // Clear stored tokens
-        delete_option('mfx_reporting_google_access_token');
-        delete_option('mfx_reporting_google_refresh_token');
-        delete_option('mfx_reporting_google_token_expires');
+        // Process weekly reports
+        if (!empty($data['weekly_enabled'])) {
+            $scheduled_reports['weekly'] = [
+                'enabled' => true,
+                'spreadsheet_id' => sanitize_text_field($data['weekly_spreadsheet'] ?? ''),
+                'worksheet_name' => sanitize_text_field($data['weekly_worksheet'] ?? 'Weekly Reports')
+            ];
+        }
+        
+        // Process monthly reports
+        if (!empty($data['monthly_enabled'])) {
+            $scheduled_reports['monthly'] = [
+                'enabled' => true,
+                'spreadsheet_id' => sanitize_text_field($data['monthly_spreadsheet'] ?? ''),
+                'worksheet_name' => sanitize_text_field($data['monthly_worksheet'] ?? 'Monthly Reports')
+            ];
+        }
+        
+        // Save to WordPress options
+        update_option('mfx_reporting_scheduled_reports', $scheduled_reports);
         
         return [
             'success' => true,
-            'message' => 'Successfully disconnected from Google Sheets'
+            'message' => 'Scheduled reports settings saved successfully.',
+            'data' => $scheduled_reports
         ];
     }
 }

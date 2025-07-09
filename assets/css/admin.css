@@ -265,3 +265,55 @@
     outline: 2px solid #0073aa;
     outline-offset: 2px;
 }
+
+/* Scheduled Reports */
+.report-frequency-section {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.report-frequency-section h4 {
+    margin: 0;
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.report-frequency-section h4 label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 0;
+    font-weight: inherit;
+}
+
+.report-frequency-section h4 input[type="checkbox"] {
+    margin-right: 10px;
+    margin-top: 0;
+}
+
+.report-config {
+    padding: 20px;
+    background-color: #fff;
+}
+
+.report-config .form-table {
+    margin-top: 0;
+}
+
+.report-config .form-table th {
+    width: 200px;
+    padding-left: 0;
+}
+
+.report-config .form-table td {
+    padding-left: 0;
+}
+
+.spreadsheet-dropdown {
+    min-width: 300px;
+}

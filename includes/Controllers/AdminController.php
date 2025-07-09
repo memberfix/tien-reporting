@@ -25,6 +25,8 @@ class AdminController {
         add_action('wp_ajax_mfx_get_auth_url', [$this, 'handleGetAuthUrl']);
         add_action('wp_ajax_mfx_test_google_connection', [$this, 'handleTestConnection']);
         add_action('wp_ajax_mfx_disconnect_google', [$this, 'handleDisconnect']);
+        add_action('wp_ajax_mfx_get_spreadsheets', [$this, 'handleGetSpreadsheets']);
+        add_action('wp_ajax_mfx_save_scheduled_reports', [$this, 'handleSaveScheduledReports']);
         add_action('admin_init', [$this, 'handleOAuthCallback']);
     }
     
@@ -146,6 +148,42 @@ class AdminController {
             wp_send_json_success($result);
         } else {
             wp_send_json_error($result);
+        }
+    }
+    
+    /**
+     * AJAX: Get spreadsheets
+     */
+    public function handleGetSpreadsheets() {
+        check_ajax_referer('mfx_reporting_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'mfx-reporting')]);
+        }
+        
+        try {
+            $spreadsheets = $this->google_sheets_service->getSpreadsheets();
+            wp_send_json_success($spreadsheets);
+        } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+    
+    /**
+     * AJAX: Save scheduled reports
+     */
+    public function handleSaveScheduledReports() {
+        check_ajax_referer('mfx_reporting_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'mfx-reporting')]);
+        }
+        
+        try {
+            $result = $this->google_sheets_service->saveScheduledReports($_POST);
+            wp_send_json_success($result);
+        } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
 }

@@ -100,6 +100,132 @@ class AdminView {
                 <?php endif; ?>
             </div>
 
+            <?php if ($is_connected): ?>
+            <!-- Scheduled Reports Section -->
+            <div class="settings-section">
+                <h3><?php _e('Scheduled Reports', 'mfx-reporting'); ?></h3>
+                <p class="description">
+                    <?php _e('Configure automatic report generation and export to Google Sheets.', 'mfx-reporting'); ?>
+                </p>
+
+                <form id="scheduled-reports-form">
+                    <?php wp_nonce_field('mfx_reporting_nonce', 'mfx_reporting_nonce'); ?>
+                    
+                    <!-- Daily Reports -->
+                    <div class="report-frequency-section">
+                        <h4>
+                            <label>
+                                <input type="checkbox" id="daily_enabled" name="daily_enabled" value="1" 
+                                    <?php checked(!empty($scheduled_reports['daily']['enabled'])); ?>>
+                                <?php _e('Daily Reports', 'mfx-reporting'); ?>
+                            </label>
+                        </h4>
+                        <div class="report-config" id="daily-config">
+                            <table class="form-table">
+                                <tr>
+                                    <th scope="row">
+                                        <label for="daily_spreadsheet"><?php _e('Spreadsheet', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <select id="daily_spreadsheet" name="daily_spreadsheet" class="regular-text spreadsheet-dropdown" data-current-value="<?php echo esc_attr($scheduled_reports['daily']['spreadsheet_id'] ?? ''); ?>">
+                                            <option value=""><?php _e('Select a spreadsheet...', 'mfx-reporting'); ?></option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">
+                                        <label for="daily_worksheet"><?php _e('Worksheet Name', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <input type="text" id="daily_worksheet" name="daily_worksheet" 
+                                            value="<?php echo esc_attr($scheduled_reports['daily']['worksheet_name'] ?? 'Daily Reports'); ?>" 
+                                            class="regular-text" placeholder="Daily Reports">
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Reports -->
+                    <div class="report-frequency-section">
+                        <h4>
+                            <label>
+                                <input type="checkbox" id="weekly_enabled" name="weekly_enabled" value="1" 
+                                    <?php checked(!empty($scheduled_reports['weekly']['enabled'])); ?>>
+                                <?php _e('Weekly Reports', 'mfx-reporting'); ?>
+                            </label>
+                        </h4>
+                        <div class="report-config" id="weekly-config">
+                            <table class="form-table">
+                                <tr>
+                                    <th scope="row">
+                                        <label for="weekly_spreadsheet"><?php _e('Spreadsheet', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <select id="weekly_spreadsheet" name="weekly_spreadsheet" class="regular-text spreadsheet-dropdown" data-current-value="<?php echo esc_attr($scheduled_reports['weekly']['spreadsheet_id'] ?? ''); ?>">
+                                            <option value=""><?php _e('Select a spreadsheet...', 'mfx-reporting'); ?></option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">
+                                        <label for="weekly_worksheet"><?php _e('Worksheet Name', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <input type="text" id="weekly_worksheet" name="weekly_worksheet" 
+                                            value="<?php echo esc_attr($scheduled_reports['weekly']['worksheet_name'] ?? 'Weekly Reports'); ?>" 
+                                            class="regular-text" placeholder="Weekly Reports">
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Reports -->
+                    <div class="report-frequency-section">
+                        <h4>
+                            <label>
+                                <input type="checkbox" id="monthly_enabled" name="monthly_enabled" value="1" 
+                                    <?php checked(!empty($scheduled_reports['monthly']['enabled'])); ?>>
+                                <?php _e('Monthly Reports', 'mfx-reporting'); ?>
+                            </label>
+                        </h4>
+                        <div class="report-config" id="monthly-config">
+                            <table class="form-table">
+                                <tr>
+                                    <th scope="row">
+                                        <label for="monthly_spreadsheet"><?php _e('Spreadsheet', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <select id="monthly_spreadsheet" name="monthly_spreadsheet" class="regular-text spreadsheet-dropdown" data-current-value="<?php echo esc_attr($scheduled_reports['monthly']['spreadsheet_id'] ?? ''); ?>">
+                                            <option value=""><?php _e('Select a spreadsheet...', 'mfx-reporting'); ?></option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">
+                                        <label for="monthly_worksheet"><?php _e('Worksheet Name', 'mfx-reporting'); ?></label>
+                                    </th>
+                                    <td>
+                                        <input type="text" id="monthly_worksheet" name="monthly_worksheet" 
+                                            value="<?php echo esc_attr($scheduled_reports['monthly']['worksheet_name'] ?? 'Monthly Reports'); ?>" 
+                                            class="regular-text" placeholder="Monthly Reports">
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" id="save-scheduled-reports" class="button button-primary">
+                            <?php _e('Save Scheduled Reports', 'mfx-reporting'); ?>
+                        </button>
+                        <span class="spinner"></span>
+                    </div>
+                </form>
+            </div>
+            <?php endif; ?>
+
             <!-- Connection Messages -->
             <div id="connection-messages" class="notice" style="display: none;">
                 <p id="connection-message-text"></p>

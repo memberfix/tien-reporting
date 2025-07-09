@@ -6,6 +6,8 @@ jQuery(document).ready(function($) {
     function init() {
         bindEvents();
         setupMessageListener();
+        loadSpreadsheets();
+        initializeReportConfigs();
     }
     
     function bindEvents() {
@@ -16,13 +18,179 @@ jQuery(document).ready(function($) {
         });
         
         // Connect to Google Sheets button
-        $('#connect-google-sheets').on('click', connectToGoogleSheets);
+        $('#connect-google-sheets').on('click', function() {
+            const $button = $(this);
+            const $spinner = $button.siblings('.spinner');
+            
+            $button.prop('disabled', true);
+            $spinner.addClass('is-active');
+            
+            $.ajax({
+                url: mfxReporting.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mfx_get_auth_url',
+                    nonce: mfxReporting.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Open popup for OAuth
+                        const popup = window.open(
+                            response.data.auth_url,
+                            'google_oauth',
+                            'width=500,height=600,scrollbars=yes,resizable=yes'
+                        );
+                        
+                        // Listen for popup messages
+                        const messageListener = function(event) {
+                            if (event.origin !== window.location.origin) return;
+                            
+                            if (event.data.type === 'oauth_success') {
+                                popup.close();
+                                window.removeEventListener('message', messageListener);
+                                showMessage('Successfully connected to Google Sheets!', 'success');
+                                setTimeout(() => location.reload(), 1500);
+                            } else if (event.data.type === 'oauth_error') {
+                                popup.close();
+                                window.removeEventListener('message', messageListener);
+                                showMessage('Connection failed: ' + event.data.message, 'error');
+                            }
+                        };
+                        
+                        window.addEventListener('message', messageListener);
+                        
+                        // Check if popup was closed manually
+                        const checkClosed = setInterval(() => {
+                            if (popup.closed) {
+                                clearInterval(checkClosed);
+                                window.removeEventListener('message', messageListener);
+                            }
+                        }, 1000);
+                        
+                    } else {
+                        showMessage('Error: ' + response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('Connection failed. Please try again.', 'error');
+                },
+                complete: function() {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                }
+            });
+        });
         
         // Test connection button
-        $('#test-google-connection').on('click', testConnection);
+        $('#test-google-connection').on('click', function() {
+            const $button = $(this);
+            const $spinner = $button.siblings('.spinner');
+            
+            $button.prop('disabled', true);
+            $spinner.addClass('is-active');
+            
+            $.ajax({
+                url: mfxReporting.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mfx_test_connection',
+                    nonce: mfxReporting.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showMessage('Connection test successful!', 'success');
+                    } else {
+                        showMessage('Connection test failed: ' + response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('Connection test failed. Please try again.', 'error');
+                },
+                complete: function() {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                }
+            });
+        });
         
         // Disconnect button
-        $('#disconnect-google').on('click', disconnectGoogle);
+        $('#disconnect-google').on('click', function() {
+            if (!confirm('Are you sure you want to disconnect from Google Sheets?')) {
+                return;
+            }
+            
+            const $button = $(this);
+            const $spinner = $button.siblings('.spinner');
+            
+            $button.prop('disabled', true);
+            $spinner.addClass('is-active');
+            
+            $.ajax({
+                url: mfxReporting.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mfx_disconnect_google',
+                    nonce: mfxReporting.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showMessage('Successfully disconnected from Google Sheets.', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showMessage('Disconnect failed: ' + response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('Disconnect failed. Please try again.', 'error');
+                },
+                complete: function() {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                }
+            });
+        });
+        
+        // Save scheduled reports
+        $('#save-scheduled-reports').on('click', function() {
+            const $button = $(this);
+            const $spinner = $button.siblings('.spinner');
+            const $form = $('#scheduled-reports-form');
+            
+            $button.prop('disabled', true);
+            $spinner.addClass('is-active');
+            
+            $.ajax({
+                url: mfxReporting.ajaxUrl,
+                type: 'POST',
+                data: $form.serialize() + '&action=mfx_save_scheduled_reports',
+                success: function(response) {
+                    if (response.success) {
+                        showMessage('Scheduled reports settings saved successfully!', 'success');
+                    } else {
+                        showMessage('Save failed: ' + response.data.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('Save failed. Please try again.', 'error');
+                },
+                complete: function() {
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                }
+            });
+        });
+        
+        // Toggle report configurations based on checkboxes
+        $('input[id$="_enabled"]').on('change', function() {
+            const frequency = this.id.replace('_enabled', '');
+            const $config = $('#' + frequency + '-config');
+            
+            if (this.checked) {
+                $config.slideDown();
+            } else {
+                $config.slideUp();
+            }
+        });
     }
     
     function setupMessageListener() {
@@ -36,6 +204,63 @@ jQuery(document).ready(function($) {
                 }, 1500);
             } else if (event.data.type === 'oauth_error') {
                 showMessage('OAuth Error: ' + event.data.message, 'error');
+            }
+        });
+    }
+    
+    function loadSpreadsheets() {
+        if (!$('.spreadsheet-dropdown').length) return;
+        
+        $.ajax({
+            url: mfxReporting.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'mfx_get_spreadsheets',
+                nonce: mfxReporting.nonce
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    populateSpreadsheetDropdowns(response.data);
+                }
+            },
+            error: function() {
+                console.log('Failed to load spreadsheets');
+            }
+        });
+    }
+    
+    function populateSpreadsheetDropdowns(spreadsheets) {
+        $('.spreadsheet-dropdown').each(function() {
+            const $select = $(this);
+            const currentValue = $select.data('current-value') || '';
+            
+            // Clear existing options except the first one
+            $select.find('option:not(:first)').remove();
+            
+            // Add spreadsheet options
+            spreadsheets.forEach(function(sheet) {
+                const $option = $('<option></option>')
+                    .attr('value', sheet.id)
+                    .text(sheet.name);
+                
+                if (sheet.id === currentValue) {
+                    $option.prop('selected', true);
+                }
+                
+                $select.append($option);
+            });
+        });
+    }
+    
+    function initializeReportConfigs() {
+        $('input[id$="_enabled"]').each(function() {
+            const frequency = this.id.replace('_enabled', '');
+            const $config = $('#' + frequency + '-config');
+            
+            if (this.checked) {
+                $config.show();
+            } else {
+                $config.hide();
             }
         });
     }
