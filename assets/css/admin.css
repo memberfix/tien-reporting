@@ -1,0 +1,175 @@
+/* MFX Reporting Admin Styles */
+
+.settings-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin: 20px 0;
+    padding: 20px;
+}
+
+.settings-section h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Help Content */
+.help-content {
+    display: none;
+    background: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.help-content ol {
+    margin: 10px 0 0 20px;
+}
+
+.help-toggle {
+    text-decoration: none;
+    color: #0073aa;
+}
+
+.help-toggle:hover {
+    color: #005177;
+}
+
+/* Button Groups */
+.button-group {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.button-group .button {
+    margin-right: 10px;
+}
+
+/* Scheduled Reports */
+.report-frequency-section {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.report-frequency-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+}
+
+.report-frequency-section h4 label {
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.report-frequency-section h4 input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.report-config {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.report-config.active {
+    display: block;
+}
+
+/* Dropdowns */
+.spreadsheet-dropdown {
+    min-width: 300px;
+}
+
+/* Connection Status */
+#connection-status {
+    margin: 15px 0;
+    padding: 12px;
+    border-left: 4px solid;
+    background: #fff;
+}
+
+#connection-status.notice-success {
+    border-left-color: #46b450;
+    background: #ecf7ed;
+}
+
+#connection-status.notice-error {
+    border-left-color: #dc3232;
+    background: #fbeaea;
+}
+
+#connection-status.notice-info {
+    border-left-color: #00a0d2;
+    background: #e5f5fa;
+}
+
+#connection-status.notice-warning {
+    border-left-color: #ffb900;
+    background: #fff8e5;
+}
+
+/* Spinner Adjustments */
+.spinner.is-active {
+    visibility: visible;
+}
+
+/* Form Table Adjustments */
+.form-table th {
+    width: 200px;
+    padding: 15px 10px 15px 0;
+}
+
+.form-table td {
+    padding: 15px 10px;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+    .form-table th,
+    .form-table td {
+        display: block;
+        width: auto;
+        padding: 10px 0;
+    }
+    
+    .form-table th {
+        padding-bottom: 5px;
+    }
+    
+    .spreadsheet-dropdown,
+    .regular-text {
+        width: 100%;
+        max-width: none;
+    }
+    
+    .button-group .button {
+        display: block;
+        margin: 5px 0;
+        text-align: center;
+    }
+}
+
+/* Loading States */
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Textarea Styling */
+.large-text.code {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Section Spacing */
+.settings-section + .settings-section {
+    margin-top: 30px;
+}

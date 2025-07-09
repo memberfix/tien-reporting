@@ -55,6 +55,7 @@ class Plugin {
         register_setting('mfx_reporting_settings', 'mfx_reporting_google_service_account_json');
         register_setting('mfx_reporting_settings', 'mfx_reporting_google_spreadsheet_id');
         register_setting('mfx_reporting_settings', 'mfx_reporting_google_worksheet_name');
+        register_setting('mfx_reporting_settings', 'mfx_reporting_scheduled_reports');
     }
     
     /**
@@ -79,5 +80,21 @@ class Plugin {
             MFX_REPORTING_VERSION,
             true
         );
+        
+        // Localize script with AJAX data
+        wp_localize_script('mfx-reporting-admin', 'mfxReporting', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('mfx_reporting_nonce'),
+            'strings' => [
+                'connecting' => __('Connecting...', 'mfx-reporting'),
+                'connected' => __('Connected successfully!', 'mfx-reporting'),
+                'connectionFailed' => __('Connection failed', 'mfx-reporting'),
+                'loadingSpreadsheets' => __('Loading spreadsheets...', 'mfx-reporting'),
+                'noSpreadsheets' => __('No spreadsheets found', 'mfx-reporting'),
+                'savingSettings' => __('Saving settings...', 'mfx-reporting'),
+                'settingsSaved' => __('Settings saved successfully!', 'mfx-reporting'),
+                'error' => __('An error occurred', 'mfx-reporting')
+            ]
+        ]);
     }
 }
