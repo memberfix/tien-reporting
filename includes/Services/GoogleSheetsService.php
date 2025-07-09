@@ -13,8 +13,8 @@ class GoogleSheetsService {
     
     public function __construct() {
         // These should be set in WordPress admin or wp-config.php
-        $this->client_id = echo MFX_GOOGLE_CLIENT_ID;
-        $this->client_secret = echo MFX_GOOGLE_CLIENT_SECRET;
+        $this->client_id = MFX_GOOGLE_CLIENT_ID;
+        $this->client_secret = MFX_GOOGLE_CLIENT_SECRET;
         $this->redirect_uri = admin_url('admin.php?page=mfx-reporting&action=oauth_callback');
     }
     
