@@ -5,27 +5,95 @@ jQuery(document).ready(function($) {
     
     function init() {
         bindEvents();
-        toggleReportConfigs();
+        setupMessageListener();
     }
     
     function bindEvents() {
-        // Help toggle
-        $('.help-toggle').on('click', function(e) {
+        // Setup help toggle
+        $('.setup-help-toggle').on('click', function(e) {
             e.preventDefault();
-            $(this).siblings('.help-content').slideToggle();
+            $(this).siblings('.setup-help-content').slideToggle();
         });
-        
-        // Test connection button
-        $('#test-google-connection').on('click', testConnection);
         
         // Connect to Google Sheets button
         $('#connect-google-sheets').on('click', connectToGoogleSheets);
         
-        // Checkbox toggles for report configs
-        $('input[name$="_enabled"]').on('change', toggleReportConfigs);
+        // Test connection button
+        $('#test-google-connection').on('click', testConnection);
         
-        // Save scheduled reports
-        $('#save-scheduled-reports').on('click', saveScheduledReports);
+        // Disconnect button
+        $('#disconnect-google').on('click', disconnectGoogle);
+    }
+    
+    function setupMessageListener() {
+        // Listen for messages from OAuth popup
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'oauth_success') {
+                showMessage(mfxReporting.strings.connected, 'success');
+                // Reload page to show connected state
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1500);
+            } else if (event.data.type === 'oauth_error') {
+                showMessage('OAuth Error: ' + event.data.message, 'error');
+            }
+        });
+    }
+    
+    function connectToGoogleSheets() {
+        const $button = $('#connect-google-sheets');
+        const $spinner = $button.siblings('.spinner');
+        
+        $button.prop('disabled', true);
+        $spinner.addClass('is-active');
+        showMessage(mfxReporting.strings.openingPopup, 'info');
+        
+        // Get OAuth URL from server
+        $.ajax({
+            url: mfxReporting.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'mfx_get_auth_url',
+                nonce: mfxReporting.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Open OAuth popup
+                    const popup = window.open(
+                        response.data.auth_url,
+                        'google_oauth',
+                        'width=500,height=600,scrollbars=yes,resizable=yes'
+                    );
+                    
+                    if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+                        showMessage(mfxReporting.strings.popupBlocked, 'error');
+                        $button.prop('disabled', false);
+                        $spinner.removeClass('is-active');
+                        return;
+                    }
+                    
+                    // Check if popup is closed manually
+                    const checkClosed = setInterval(function() {
+                        if (popup.closed) {
+                            clearInterval(checkClosed);
+                            $button.prop('disabled', false);
+                            $spinner.removeClass('is-active');
+                            hideMessage();
+                        }
+                    }, 1000);
+                    
+                } else {
+                    showMessage(response.data.message, 'error');
+                    $button.prop('disabled', false);
+                    $spinner.removeClass('is-active');
+                }
+            },
+            error: function() {
+                showMessage(mfxReporting.strings.error, 'error');
+                $button.prop('disabled', false);
+                $spinner.removeClass('is-active');
+            }
+        });
     }
     
     function testConnection() {
@@ -45,9 +113,9 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    showMessage(response.message, 'success');
+                    showMessage(response.data.message, 'success');
                 } else {
-                    showMessage(response.message, 'error');
+                    showMessage(response.data.message, 'error');
                 }
             },
             error: function() {
@@ -60,112 +128,34 @@ jQuery(document).ready(function($) {
         });
     }
     
-    function connectToGoogleSheets() {
-        const $button = $('#connect-google-sheets');
+    function disconnectGoogle() {
+        if (!confirm('Are you sure you want to disconnect from Google Sheets?')) {
+            return;
+        }
+        
+        const $button = $('#disconnect-google');
         const $spinner = $button.siblings('.spinner');
         
         $button.prop('disabled', true);
         $spinner.addClass('is-active');
-        showMessage(mfxReporting.strings.loadingSpreadsheets, 'info');
+        showMessage(mfxReporting.strings.disconnecting, 'info');
         
         $.ajax({
             url: mfxReporting.ajaxUrl,
             type: 'POST',
             data: {
-                action: 'mfx_get_spreadsheets',
+                action: 'mfx_disconnect_google',
                 nonce: mfxReporting.nonce
             },
             success: function(response) {
                 if (response.success) {
-                    populateSpreadsheetDropdowns(response.spreadsheets);
-                    $('#scheduled-reports-section').slideDown();
-                    showMessage(mfxReporting.strings.connected, 'success');
+                    showMessage(response.data.message, 'success');
+                    // Reload page to show disconnected state
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1500);
                 } else {
-                    showMessage(response.message, 'error');
-                }
-            },
-            error: function() {
-                showMessage(mfxReporting.strings.connectionFailed, 'error');
-            },
-            complete: function() {
-                $button.prop('disabled', false);
-                $spinner.removeClass('is-active');
-            }
-        });
-    }
-    
-    function populateSpreadsheetDropdowns(spreadsheets) {
-        const $dropdowns = $('.spreadsheet-dropdown');
-        
-        // Clear existing options except the first one
-        $dropdowns.each(function() {
-            $(this).find('option:not(:first)').remove();
-        });
-        
-        if (spreadsheets && spreadsheets.length > 0) {
-            spreadsheets.forEach(function(sheet) {
-                const option = `<option value="${sheet.id}">${sheet.name}</option>`;
-                $dropdowns.append(option);
-            });
-        } else {
-            const noSheetsOption = `<option value="" disabled>${mfxReporting.strings.noSpreadsheets}</option>`;
-            $dropdowns.append(noSheetsOption);
-        }
-        
-        // Restore previously selected values
-        restoreSelectedValues();
-    }
-    
-    function restoreSelectedValues() {
-        // Get saved values from PHP (if any)
-        const savedReports = window.mfxScheduledReports || {};
-        
-        if (savedReports.daily && savedReports.daily.spreadsheet_id) {
-            $('#daily_spreadsheet').val(savedReports.daily.spreadsheet_id);
-        }
-        if (savedReports.weekly && savedReports.weekly.spreadsheet_id) {
-            $('#weekly_spreadsheet').val(savedReports.weekly.spreadsheet_id);
-        }
-        if (savedReports.monthly && savedReports.monthly.spreadsheet_id) {
-            $('#monthly_spreadsheet').val(savedReports.monthly.spreadsheet_id);
-        }
-    }
-    
-    function toggleReportConfigs() {
-        $('input[name$="_enabled"]').each(function() {
-            const $checkbox = $(this);
-            const configId = $checkbox.attr('id').replace('_enabled', '-config');
-            const $config = $('#' + configId);
-            
-            if ($checkbox.is(':checked')) {
-                $config.slideDown();
-            } else {
-                $config.slideUp();
-            }
-        });
-    }
-    
-    function saveScheduledReports() {
-        const $button = $('#save-scheduled-reports');
-        const $spinner = $button.siblings('.spinner');
-        const $form = $('#scheduled-reports-form');
-        
-        $button.prop('disabled', true);
-        $spinner.addClass('is-active');
-        showMessage(mfxReporting.strings.savingSettings, 'info');
-        
-        const formData = $form.serialize();
-        formData += '&action=mfx_save_scheduled_reports';
-        
-        $.ajax({
-            url: mfxReporting.ajaxUrl,
-            type: 'POST',
-            data: formData,
-            success: function(response) {
-                if (response.success) {
-                    showMessage(response.message, 'success');
-                } else {
-                    showMessage(response.message, 'error');
+                    showMessage(response.data.message, 'error');
                 }
             },
             error: function() {
@@ -179,25 +169,29 @@ jQuery(document).ready(function($) {
     }
     
     function showMessage(message, type) {
-        const $status = $('#connection-status');
-        const $message = $('#connection-message');
+        const $messages = $('#connection-messages');
+        const $messageText = $('#connection-message-text');
         
         // Remove existing classes
-        $status.removeClass('notice-success notice-error notice-info notice-warning');
+        $messages.removeClass('notice-success notice-error notice-info notice-warning');
         
         // Add appropriate class
-        $status.addClass('notice-' + type);
+        $messages.addClass('notice-' + type);
         
         // Set message and show
-        $message.text(message);
-        $status.slideDown();
+        $messageText.text(message);
+        $messages.slideDown();
         
-        // Auto-hide after 5 seconds for success messages
+        // Auto-hide success messages after 5 seconds
         if (type === 'success') {
             setTimeout(function() {
-                $status.slideUp();
+                $messages.slideUp();
             }, 5000);
         }
+    }
+    
+    function hideMessage() {
+        $('#connection-messages').slideUp();
     }
     
     // Spinner styles

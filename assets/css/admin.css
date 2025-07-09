@@ -5,155 +5,201 @@
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0,0,0,.04);
     margin: 20px 0;
-    padding: 20px;
+    padding: 30px;
+    border-radius: 4px;
 }
 
 .settings-section h3 {
     margin-top: 0;
+    margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
+    font-size: 18px;
 }
 
-/* Help Content */
-.help-content {
-    display: none;
-    background: #f7f7f7;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 15px;
-    margin-top: 10px;
+.settings-section .description {
+    margin-bottom: 25px;
+    color: #666;
+    font-size: 14px;
 }
 
-.help-content ol {
-    margin: 10px 0 0 20px;
+/* Connection Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 25px;
+    border: 2px solid;
 }
 
-.help-toggle {
-    text-decoration: none;
-    color: #0073aa;
+.connection-status.connected {
+    background: #ecf7ed;
+    border-color: #46b450;
 }
 
-.help-toggle:hover {
-    color: #005177;
+.connection-status.not-connected {
+    background: #fff8e5;
+    border-color: #ffb900;
+}
+
+.status-icon {
+    margin-right: 15px;
+    font-size: 24px;
+}
+
+.connection-status.connected .status-icon {
+    color: #46b450;
+}
+
+.connection-status.not-connected .status-icon {
+    color: #ffb900;
+}
+
+.status-content h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.status-content p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
 }
 
 /* Button Groups */
 .button-group {
-    margin-top: 20px;
-    padding-top: 15px;
+    margin: 25px 0;
+    padding-top: 20px;
     border-top: 1px solid #eee;
 }
 
 .button-group .button {
-    margin-right: 10px;
+    margin-right: 15px;
+    position: relative;
 }
 
-/* Scheduled Reports */
-.report-frequency-section {
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #ddd;
+.button-large {
+    padding: 12px 24px;
+    font-size: 16px;
+    height: auto;
+    line-height: 1.4;
+}
+
+.button .dashicons {
+    margin-right: 8px;
+    vertical-align: middle;
+    font-size: 18px;
+}
+
+/* Setup Instructions */
+.setup-instructions {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
     border-radius: 4px;
-    background: #fafafa;
 }
 
-.report-frequency-section h4 {
+.setup-instructions h4 {
     margin: 0 0 15px 0;
     font-size: 14px;
-}
-
-.report-frequency-section h4 label {
     font-weight: 600;
-    cursor: pointer;
 }
 
-.report-frequency-section h4 input[type="checkbox"] {
-    margin-right: 8px;
+.setup-instructions ol {
+    margin: 10px 0 0 20px;
+    color: #666;
 }
 
-.report-config {
+.setup-instructions li {
+    margin-bottom: 5px;
+}
+
+.setup-help-toggle {
+    color: #0073aa;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.setup-help-toggle:hover {
+    color: #005177;
+}
+
+.setup-help-content {
     display: none;
     margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #ddd;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
-.report-config.active {
-    display: block;
+.setup-help-content h5 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
 }
 
-/* Dropdowns */
-.spreadsheet-dropdown {
-    min-width: 300px;
+.setup-help-content ol {
+    margin: 10px 0 0 20px;
+    font-size: 13px;
 }
 
-/* Connection Status */
-#connection-status {
-    margin: 15px 0;
-    padding: 12px;
+.setup-help-content code {
+    background: #f1f1f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+/* Connection Messages */
+#connection-messages {
+    margin: 20px 0;
+    padding: 12px 16px;
     border-left: 4px solid;
     background: #fff;
+    border-radius: 0 4px 4px 0;
 }
 
-#connection-status.notice-success {
+#connection-messages.notice-success {
     border-left-color: #46b450;
     background: #ecf7ed;
 }
 
-#connection-status.notice-error {
+#connection-messages.notice-error {
     border-left-color: #dc3232;
     background: #fbeaea;
 }
 
-#connection-status.notice-info {
+#connection-messages.notice-info {
     border-left-color: #00a0d2;
     background: #e5f5fa;
 }
 
-#connection-status.notice-warning {
+#connection-messages.notice-warning {
     border-left-color: #ffb900;
     background: #fff8e5;
 }
 
+#connection-message-text {
+    margin: 0;
+    font-size: 14px;
+}
+
 /* Spinner Adjustments */
+.spinner {
+    visibility: hidden;
+    float: none;
+    margin-left: 10px;
+    margin-top: 0;
+    vertical-align: middle;
+}
+
 .spinner.is-active {
     visibility: visible;
-}
-
-/* Form Table Adjustments */
-.form-table th {
-    width: 200px;
-    padding: 15px 10px 15px 0;
-}
-
-.form-table td {
-    padding: 15px 10px;
-}
-
-/* Responsive Design */
-@media screen and (max-width: 782px) {
-    .form-table th,
-    .form-table td {
-        display: block;
-        width: auto;
-        padding: 10px 0;
-    }
-    
-    .form-table th {
-        padding-bottom: 5px;
-    }
-    
-    .spreadsheet-dropdown,
-    .regular-text {
-        width: 100%;
-        max-width: none;
-    }
-    
-    .button-group .button {
-        display: block;
-        margin: 5px 0;
-        text-align: center;
-    }
 }
 
 /* Loading States */
@@ -162,14 +208,60 @@
     cursor: not-allowed;
 }
 
-/* Textarea Styling */
-.large-text.code {
-    font-family: Consolas, Monaco, monospace;
-    font-size: 12px;
-    line-height: 1.4;
+/* WordPress Notice Styling */
+.notice.notice-success {
+    border-left-color: #46b450;
 }
 
-/* Section Spacing */
-.settings-section + .settings-section {
-    margin-top: 30px;
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+    .settings-section {
+        padding: 20px;
+    }
+    
+    .connection-status {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 15px;
+    }
+    
+    .status-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .button-group .button {
+        display: block;
+        margin: 10px 0;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .button-large {
+        padding: 15px 20px;
+    }
+    
+    .setup-instructions {
+        padding: 15px;
+    }
+    
+    .setup-help-content code {
+        word-break: break-all;
+        display: block;
+        margin: 5px 0;
+    }
+}
+
+/* Animation for smooth transitions */
+.connection-status,
+.setup-help-content,
+#connection-messages {
+    transition: all 0.3s ease;
+}
+
+/* Focus states for accessibility */
+.button:focus,
+.setup-help-toggle:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
 }

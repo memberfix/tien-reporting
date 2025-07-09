@@ -52,10 +52,8 @@ class Plugin {
      * Register plugin settings
      */
     public function registerSettings() {
-        register_setting('mfx_reporting_settings', 'mfx_reporting_google_service_account_json');
-        register_setting('mfx_reporting_settings', 'mfx_reporting_google_spreadsheet_id');
-        register_setting('mfx_reporting_settings', 'mfx_reporting_google_worksheet_name');
-        register_setting('mfx_reporting_settings', 'mfx_reporting_scheduled_reports');
+        register_setting('mfx_reporting_settings', 'mfx_reporting_google_client_id');
+        register_setting('mfx_reporting_settings', 'mfx_reporting_google_client_secret');
     }
     
     /**
@@ -89,10 +87,10 @@ class Plugin {
                 'connecting' => __('Connecting...', 'mfx-reporting'),
                 'connected' => __('Connected successfully!', 'mfx-reporting'),
                 'connectionFailed' => __('Connection failed', 'mfx-reporting'),
-                'loadingSpreadsheets' => __('Loading spreadsheets...', 'mfx-reporting'),
-                'noSpreadsheets' => __('No spreadsheets found', 'mfx-reporting'),
-                'savingSettings' => __('Saving settings...', 'mfx-reporting'),
-                'settingsSaved' => __('Settings saved successfully!', 'mfx-reporting'),
+                'disconnecting' => __('Disconnecting...', 'mfx-reporting'),
+                'disconnected' => __('Disconnected successfully!', 'mfx-reporting'),
+                'openingPopup' => __('Opening login popup...', 'mfx-reporting'),
+                'popupBlocked' => __('Popup was blocked. Please allow popups and try again.', 'mfx-reporting'),
                 'error' => __('An error occurred', 'mfx-reporting')
             ]
         ]);
