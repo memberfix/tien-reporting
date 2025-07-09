@@ -22,6 +22,8 @@ class GoogleSheetsService {
      * Get Google OAuth2 authorization URL
      */
     public function getAuthUrl() {
+        error_log("client_id: " . $this->client_id);
+        error_log("client_secret: " . $this->client_secret);
         $params = [
             'client_id' => $this->client_id,
             'redirect_uri' => $this->redirect_uri,
