@@ -262,37 +262,37 @@ class GoogleSheetsService {
         $scheduled_reports = [];
         
         // Process daily reports
-        if (!empty($data['daily_enabled'])) {
+        if (!empty($data['daily_enabled']) && !empty($data['daily_spreadsheet'])) {
             $scheduled_reports['daily'] = [
                 'enabled' => true,
-                'spreadsheet_id' => sanitize_text_field($data['daily_spreadsheet'] ?? ''),
-                'worksheet_name' => sanitize_text_field($data['daily_worksheet'] ?? 'Daily Reports')
+                'spreadsheet_id' => sanitize_text_field($data['daily_spreadsheet'])
             ];
         }
         
         // Process weekly reports
-        if (!empty($data['weekly_enabled'])) {
+        if (!empty($data['weekly_enabled']) && !empty($data['weekly_spreadsheet'])) {
             $scheduled_reports['weekly'] = [
                 'enabled' => true,
-                'spreadsheet_id' => sanitize_text_field($data['weekly_spreadsheet'] ?? ''),
-                'worksheet_name' => sanitize_text_field($data['weekly_worksheet'] ?? 'Weekly Reports')
+                'spreadsheet_id' => sanitize_text_field($data['weekly_spreadsheet'])
             ];
         }
         
         // Process monthly reports
-        if (!empty($data['monthly_enabled'])) {
+        if (!empty($data['monthly_enabled']) && !empty($data['monthly_spreadsheet'])) {
             $scheduled_reports['monthly'] = [
                 'enabled' => true,
-                'spreadsheet_id' => sanitize_text_field($data['monthly_spreadsheet'] ?? ''),
-                'worksheet_name' => sanitize_text_field($data['monthly_worksheet'] ?? 'Monthly Reports')
+                'spreadsheet_id' => sanitize_text_field($data['monthly_spreadsheet'])
             ];
         }
         
         // Save to WordPress options
-        update_option('mfx_reporting_scheduled_reports', $scheduled_reports);
+        $saved = update_option('mfx_reporting_scheduled_reports', $scheduled_reports);
+        
+        if (!$saved && get_option('mfx_reporting_scheduled_reports') !== $scheduled_reports) {
+            throw new \Exception('Failed to save scheduled reports settings');
+        }
         
         return [
-            'success' => true,
             'message' => 'Scheduled reports settings saved successfully.',
             'data' => $scheduled_reports
         ];

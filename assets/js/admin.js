@@ -156,21 +156,52 @@ jQuery(document).ready(function($) {
             const $spinner = $button.siblings('.spinner');
             const $form = $('#scheduled-reports-form');
             
+            console.log('MFX Debug: Save button clicked');
+            
             $button.prop('disabled', true);
             $spinner.addClass('is-active');
+            
+            // Get form data
+            const formData = {
+                action: 'mfx_save_scheduled_reports',
+                nonce: mfxReporting.nonce,
+                daily_spreadsheet: $('#daily_spreadsheet').val(),
+                weekly_spreadsheet: $('#weekly_spreadsheet').val(),
+                monthly_spreadsheet: $('#monthly_spreadsheet').val()
+            };
+            
+            console.log('MFX Debug: Form data:', formData);
+            
+            // Only include enabled reports (those with selected spreadsheets)
+            if (formData.daily_spreadsheet) {
+                formData.daily_enabled = '1';
+            }
+            if (formData.weekly_spreadsheet) {
+                formData.weekly_enabled = '1';
+            }
+            if (formData.monthly_spreadsheet) {
+                formData.monthly_enabled = '1';
+            }
+            
+            console.log('MFX Debug: Final form data:', formData);
             
             $.ajax({
                 url: mfxReporting.ajaxUrl,
                 type: 'POST',
-                data: $form.serialize() + '&action=mfx_save_scheduled_reports',
+                data: formData,
                 success: function(response) {
+                    console.log('MFX Debug: Save response:', response);
                     if (response.success) {
                         showMessage('Scheduled reports settings saved successfully!', 'success');
                     } else {
-                        showMessage('Save failed: ' + response.data.message, 'error');
+                        console.log('MFX Debug: Save failed with message:', response.data?.message);
+                        showMessage('Save failed: ' + (response.data?.message || 'Unknown error'), 'error');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.log('MFX Debug: AJAX error saving reports:', error);
+                    console.log('MFX Debug: Response text:', xhr.responseText);
+                    console.log('MFX Debug: Status:', status);
                     showMessage('Save failed. Please try again.', 'error');
                 },
                 complete: function() {

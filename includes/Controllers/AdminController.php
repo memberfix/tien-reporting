@@ -173,16 +173,32 @@ class AdminController {
      * AJAX: Save scheduled reports
      */
     public function handleSaveScheduledReports() {
-        check_ajax_referer('mfx_reporting_nonce', 'nonce');
+        error_log('MFX Debug: handleSaveScheduledReports called');
+        error_log('MFX Debug: POST data: ' . print_r($_POST, true));
+        
+        try {
+            check_ajax_referer('mfx_reporting_nonce', 'nonce');
+            error_log('MFX Debug: Nonce verified');
+        } catch (Exception $e) {
+            error_log('MFX Debug: Nonce verification failed: ' . $e->getMessage());
+            wp_send_json_error(['message' => 'Security check failed']);
+            return;
+        }
         
         if (!current_user_can('manage_options')) {
+            error_log('MFX Debug: User lacks manage_options capability');
             wp_send_json_error(['message' => __('Insufficient permissions', 'mfx-reporting')]);
+            return;
         }
+        
+        error_log('MFX Debug: Permissions verified, calling saveScheduledReports');
         
         try {
             $result = $this->google_sheets_service->saveScheduledReports($_POST);
+            error_log('MFX Debug: saveScheduledReports result: ' . print_r($result, true));
             wp_send_json_success($result);
         } catch (\Exception $e) {
+            error_log('MFX Debug: Exception in saveScheduledReports: ' . $e->getMessage());
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
