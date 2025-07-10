@@ -137,15 +137,7 @@ class GoogleSheetsService {
         try {
             $access_token = $this->getAccessToken();
             
-            if (!$access_token) {
-                return [
-                    'success' => false,
-                    'message' => 'No access token available. Please connect to Google Sheets first.'
-                ];
-            }
-            
-            // Test API call - get user's Drive files
-            $response = wp_remote_get('https://www.googleapis.com/drive/v3/files?q=mimeType%3D%27application%2Fvnd.google-apps.spreadsheet%27&pageSize=1', [
+            $response = wp_remote_get('https://www.googleapis.com/drive/v3/about?fields=user', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $access_token,
                     'Content-Type' => 'application/json'
@@ -153,32 +145,38 @@ class GoogleSheetsService {
             ]);
             
             if (is_wp_error($response)) {
-                return [
-                    'success' => false,
-                    'message' => 'Connection failed: ' . $response->get_error_message()
-                ];
+                throw new \Exception($response->get_error_message());
             }
             
-            $status_code = wp_remote_retrieve_response_code($response);
-            if ($status_code !== 200) {
-                return [
-                    'success' => false,
-                    'message' => 'API request failed with status: ' . $status_code
-                ];
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+            
+            if (isset($data['error'])) {
+                throw new \Exception($data['error']['message']);
             }
             
             return [
                 'success' => true,
-                'message' => 'Successfully connected to Google Sheets!'
+                'message' => 'Connection successful',
+                'user' => $data['user'] ?? null
             ];
             
         } catch (\Exception $e) {
-            error_log('MFX Reporting - Google Sheets connection test failed: ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Connection test failed: ' . $e->getMessage()
+                'message' => 'Connection failed: ' . $e->getMessage()
             ];
         }
+    }
+    
+    /**
+     * Check if user is connected to Google Sheets
+     */
+    public function isConnected() {
+        $access_token = get_option('mfx_reporting_google_access_token');
+        $refresh_token = get_option('mfx_reporting_google_refresh_token');
+        
+        return !empty($access_token) || !empty($refresh_token);
     }
     
     /**
@@ -228,16 +226,6 @@ class GoogleSheetsService {
                 'message' => 'Failed to get spreadsheets: ' . $e->getMessage()
             ];
         }
-    }
-    
-    /**
-     * Check if user is connected
-     */
-    public function isConnected() {
-        $access_token = get_option('mfx_reporting_google_access_token');
-        $refresh_token = get_option('mfx_reporting_google_refresh_token');
-        
-        return !empty($access_token) || !empty($refresh_token);
     }
     
     /**

@@ -220,6 +220,9 @@ class AdminView {
                         <button type="button" id="save-scheduled-reports" class="button button-primary">
                             <?php _e('Save Scheduled Reports', 'mfx-reporting'); ?>
                         </button>
+                        <button type="button" id="debug-load-spreadsheets" class="button button-secondary">
+                            <?php _e('Debug: Load Spreadsheets', 'mfx-reporting'); ?>
+                        </button>
                         <span class="spinner"></span>
                     </div>
                 </form>

@@ -209,7 +209,12 @@ jQuery(document).ready(function($) {
     }
     
     function loadSpreadsheets() {
-        if (!$('.spreadsheet-dropdown').length) return;
+        if (!$('.spreadsheet-dropdown').length) {
+            console.log('MFX Debug: No spreadsheet dropdowns found');
+            return;
+        }
+        
+        console.log('MFX Debug: Loading spreadsheets...');
         
         $.ajax({
             url: mfxReporting.ajaxUrl,
@@ -219,12 +224,16 @@ jQuery(document).ready(function($) {
                 nonce: mfxReporting.nonce
             },
             success: function(response) {
+                console.log('MFX Debug: Spreadsheets response:', response);
                 if (response.success && response.data) {
                     populateSpreadsheetDropdowns(response.data);
+                } else {
+                    console.log('MFX Debug: Failed to load spreadsheets:', response.data?.message || 'Unknown error');
                 }
             },
-            error: function() {
-                console.log('Failed to load spreadsheets');
+            error: function(xhr, status, error) {
+                console.log('MFX Debug: AJAX error loading spreadsheets:', error);
+                console.log('MFX Debug: Response:', xhr.responseText);
             }
         });
     }
