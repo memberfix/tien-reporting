@@ -16,6 +16,14 @@ jQuery(document).ready(function($) {
             e.preventDefault();
             $(this).siblings('.setup-help-content').slideToggle();
         });
+
+        console.log('Attaching click handler to #test-daily-export-btn');
+        console.log('Button element:', $('#test-daily-export-btn'));
+        console.log('Button length:', $('#test-daily-export-btn').length);
+        $('#test-daily-export-btn').on('click', function(e) {
+            console.log('Test daily export button clicked!');
+            testDailyExport();
+        });
         
         // Connect to Google Sheets button
         $('#connect-google-sheets').on('click', function() {
@@ -202,16 +210,7 @@ jQuery(document).ready(function($) {
                     $spinner.removeClass('is-active');
                 }
             });
-        });
-        
-        console.log('Attaching click handler to #test-daily-export-btn');
-        console.log('Button element:', $('#test-daily-export-btn'));
-        console.log('Button length:', $('#test-daily-export-btn').length);
-        $('#test-daily-export-btn').on('click', function(e) {
-            console.log('Test daily export button clicked!');
-            testDailyExport();
-        });
-        
+        });      
         // Initialize any other functionality here if needed
     }
 
