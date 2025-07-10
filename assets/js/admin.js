@@ -111,11 +111,11 @@ jQuery(document).ready(function($) {
                         showMessage('Connection test failed: ' + response.data.message, 'error');
                     }
                 },
-                error: function() {
-                    showMessage('Connection test failed. Please try again.', 'error');
+                error: function(e) {
+                    showMessage('Connection test failed. Please try again.' + e.message, 'error');
                 },
                 complete: function() {
-                    $button.prop('disabled', false);
+                    $button.prop('disabled', false).text('Test Connection');
                     $spinner.removeClass('is-active');
                 }
             });
