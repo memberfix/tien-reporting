@@ -404,9 +404,10 @@ class GoogleSheetsService {
             'values' => $data
         ];
         
-        $response = wp_remote_put(
+        $response = wp_remote_request(
             "https://sheets.googleapis.com/v4/spreadsheets/{$spreadsheet_id}/values/{$full_range}?valueInputOption=RAW",
             [
+                'method' => 'PUT',
                 'headers' => [
                     'Authorization' => 'Bearer ' . $access_token,
                     'Content-Type' => 'application/json'
