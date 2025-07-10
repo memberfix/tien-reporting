@@ -226,7 +226,10 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 console.log('MFX Debug: Spreadsheets response:', response);
                 if (response.success && response.data) {
-                    populateSpreadsheetDropdowns(response.data);
+                    // Check if data has spreadsheets array (from getSpreadsheets method)
+                    const spreadsheets = response.data.spreadsheets || response.data;
+                    console.log('MFX Debug: Extracted spreadsheets:', spreadsheets);
+                    populateSpreadsheetDropdowns(spreadsheets);
                 } else {
                     console.log('MFX Debug: Failed to load spreadsheets:', response.data?.message || 'Unknown error');
                 }

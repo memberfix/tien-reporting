@@ -180,52 +180,46 @@ class GoogleSheetsService {
     }
     
     /**
-     * Get user's spreadsheets
+     * Get user's Google Sheets spreadsheets
      */
     public function getSpreadsheets() {
-        try {
-            $access_token = $this->getAccessToken();
-            
-            $response = wp_remote_get('https://www.googleapis.com/drive/v3/files?q=mimeType%3D%27application%2Fvnd.google-apps.spreadsheet%27&pageSize=100', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $access_token,
-                    'Content-Type' => 'application/json'
-                ]
-            ]);
-            
-            if (is_wp_error($response)) {
-                throw new \Exception($response->get_error_message());
-            }
-            
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-            
-            if (isset($data['error'])) {
-                throw new \Exception($data['error']['message']);
-            }
-            
-            $spreadsheets = [];
-            if (isset($data['files'])) {
-                foreach ($data['files'] as $file) {
-                    $spreadsheets[] = [
-                        'id' => $file['id'],
-                        'name' => $file['name']
-                    ];
-                }
-            }
-            
-            return [
-                'success' => true,
-                'spreadsheets' => $spreadsheets
-            ];
-            
-        } catch (\Exception $e) {
-            error_log('MFX Reporting - Failed to get spreadsheets: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to get spreadsheets: ' . $e->getMessage()
+        if (!$this->isConnected()) {
+            throw new \Exception('Not connected to Google Sheets');
+        }
+        
+        $access_token = $this->getAccessToken();
+        if (!$access_token) {
+            throw new \Exception('Unable to get valid access token');
+        }
+        
+        $response = wp_remote_get('https://www.googleapis.com/drive/v3/files?q=mimeType%3D%27application%2Fvnd.google-apps.spreadsheet%27&fields=files(id%2Cname)', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $access_token,
+                'Content-Type' => 'application/json'
+            ]
+        ]);
+        
+        if (is_wp_error($response)) {
+            throw new \Exception('Failed to fetch spreadsheets: ' . $response->get_error_message());
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        if (!isset($data['files'])) {
+            throw new \Exception('Invalid response from Google Drive API');
+        }
+        
+        // Format the spreadsheets for frontend use
+        $spreadsheets = [];
+        foreach ($data['files'] as $file) {
+            $spreadsheets[] = [
+                'id' => $file['id'],
+                'name' => $file['name']
             ];
         }
+        
+        return $spreadsheets;
     }
     
     /**
