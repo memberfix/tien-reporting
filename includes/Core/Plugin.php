@@ -125,7 +125,7 @@ class Plugin {
             'mfx-reporting-admin',
             MFX_REPORTING_PLUGIN_URL . 'assets/js/admin.js',
             ['jquery'],
-            MFX_REPORTING_VERSION,
+            MFX_REPORTING_VERSION . '.' . time(),
             true
         );
         
