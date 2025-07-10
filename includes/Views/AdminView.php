@@ -182,6 +182,27 @@ class AdminView {
             </div>
             <?php endif; ?>
 
+            <!-- Manual Test Daily Export -->
+            <div class="card">
+                <h2><?php _e('Test Daily Export', 'mfx-reporting'); ?></h2>
+                <div class="card-content">
+                    <p><?php _e('Manually trigger a daily export for testing purposes.', 'mfx-reporting'); ?></p>
+                    
+                    <div class="form-group">
+                        <label for="test-export-date"><?php _e('Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-export-date" name="test_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" id="test-daily-export-btn" class="button button-secondary">
+                            <?php _e('Test Daily Export', 'mfx-reporting'); ?>
+                        </button>
+                    </div>
+                    
+                    <div id="test-export-result" class="notice" style="display: none;"></div>
+                </div>
+            </div>
+
             <!-- Connection Messages -->
             <div id="connection-messages" class="notice" style="display: none;">
                 <p id="connection-message-text"></p>

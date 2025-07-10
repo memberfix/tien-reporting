@@ -3,6 +3,7 @@
 namespace MFX_Reporting\Core;
 
 use MFX_Reporting\Controllers\AdminController;
+use MFX_Reporting\Services\CronService;
 
 /**
  * Main Plugin Class
@@ -18,6 +19,11 @@ class Plugin {
      * Controllers
      */
     private $admin_controller;
+    
+    /**
+     * Services
+     */
+    private $cron_service;
     
     /**
      * Get plugin instance (Singleton)
@@ -43,9 +49,53 @@ class Plugin {
         // Initialize controllers
         $this->admin_controller = new AdminController();
         
+        // Initialize services
+        $this->cron_service = new CronService();
+        
         // Hook into WordPress
         add_action('admin_init', [$this, 'registerSettings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        
+        // Register cron jobs
+        add_action('wp', [$this, 'registerCronJobs']);
+        
+        // Hook cron job handlers
+        add_action('mfx_reporting_daily_export', [$this->cron_service, 'handleDailyExport']);
+        add_action('mfx_reporting_weekly_export', [$this->cron_service, 'handleWeeklyExport']);
+        add_action('mfx_reporting_monthly_export', [$this->cron_service, 'handleMonthlyExport']);
+        
+        // Register plugin activation/deactivation hooks
+        register_activation_hook(MFX_REPORTING_PLUGIN_FILE, [$this, 'onActivation']);
+        register_deactivation_hook(MFX_REPORTING_PLUGIN_FILE, [$this, 'onDeactivation']);
+    }
+    
+    /**
+     * Register cron jobs
+     */
+    public function registerCronJobs() {
+        $this->cron_service->registerCronJobs();
+    }
+    
+    /**
+     * Plugin activation hook
+     */
+    public function onActivation() {
+        // Register cron jobs on activation
+        $this->cron_service->registerCronJobs();
+        
+        // Flush rewrite rules if needed
+        flush_rewrite_rules();
+    }
+    
+    /**
+     * Plugin deactivation hook
+     */
+    public function onDeactivation() {
+        // Clear cron jobs on deactivation
+        $this->cron_service->unregisterCronJobs();
+        
+        // Flush rewrite rules
+        flush_rewrite_rules();
     }
     
     /**

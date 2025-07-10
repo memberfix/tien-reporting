@@ -303,4 +303,189 @@ class GoogleSheetsService {
             'data' => $scheduled_reports
         ];
     }
+    
+    /**
+     * Get saved scheduled reports settings
+     */
+    public function getScheduledReports() {
+        return get_option('mfx_reporting_scheduled_reports', []);
+    }
+    
+    /**
+     * Get specific spreadsheet ID for a frequency
+     */
+    public function getSpreadsheetId($frequency) {
+        $scheduled_reports = $this->getScheduledReports();
+        
+        if (isset($scheduled_reports[$frequency]) && isset($scheduled_reports[$frequency]['spreadsheet_id'])) {
+            return $scheduled_reports[$frequency]['spreadsheet_id'];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Check if a specific frequency is enabled
+     */
+    public function isFrequencyEnabled($frequency) {
+        $scheduled_reports = $this->getScheduledReports();
+        
+        return isset($scheduled_reports[$frequency]) && 
+               isset($scheduled_reports[$frequency]['enabled']) && 
+               $scheduled_reports[$frequency]['enabled'] === true;
+    }
+    
+    /**
+     * Create a new sheet in a spreadsheet
+     */
+    public function createSheet($spreadsheet_id, $sheet_name) {
+        if (!$this->isConnected()) {
+            throw new \Exception('Not connected to Google Sheets');
+        }
+        
+        $access_token = $this->getAccessToken();
+        if (!$access_token) {
+            throw new \Exception('Unable to get valid access token');
+        }
+        
+        $request_body = [
+            'requests' => [
+                [
+                    'addSheet' => [
+                        'properties' => [
+                            'title' => $sheet_name
+                        ]
+                    ]
+                ]
+            ]
+        ];
+        
+        $response = wp_remote_post(
+            "https://sheets.googleapis.com/v4/spreadsheets/{$spreadsheet_id}:batchUpdate",
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Content-Type' => 'application/json'
+                ],
+                'body' => json_encode($request_body)
+            ]
+        );
+        
+        if (is_wp_error($response)) {
+            throw new \Exception('Failed to create sheet: ' . $response->get_error_message());
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        if (isset($data['error'])) {
+            throw new \Exception('Google Sheets API error: ' . $data['error']['message']);
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Write data to a specific sheet
+     */
+    public function writeToSheet($spreadsheet_id, $sheet_name, $data, $range = 'A1') {
+        if (!$this->isConnected()) {
+            throw new \Exception('Not connected to Google Sheets');
+        }
+        
+        $access_token = $this->getAccessToken();
+        if (!$access_token) {
+            throw new \Exception('Unable to get valid access token');
+        }
+        
+        $full_range = $sheet_name . '!' . $range;
+        
+        $request_body = [
+            'values' => $data
+        ];
+        
+        $response = wp_remote_put(
+            "https://sheets.googleapis.com/v4/spreadsheets/{$spreadsheet_id}/values/{$full_range}?valueInputOption=RAW",
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Content-Type' => 'application/json'
+                ],
+                'body' => json_encode($request_body)
+            ]
+        );
+        
+        if (is_wp_error($response)) {
+            throw new \Exception('Failed to write to sheet: ' . $response->get_error_message());
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        if (isset($data['error'])) {
+            throw new \Exception('Google Sheets API error: ' . $data['error']['message']);
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Export daily report to Google Sheets
+     */
+    public function exportDailyReport($date = null) {
+        if (!$date) {
+            $date = date('Y-m-d', strtotime('-1 day')); // Default to yesterday
+        }
+        
+        // Check if daily reports are enabled
+        if (!$this->isFrequencyEnabled('daily')) {
+            throw new \Exception('Daily reports are not enabled');
+        }
+        
+        $spreadsheet_id = $this->getSpreadsheetId('daily');
+        if (!$spreadsheet_id) {
+            throw new \Exception('No spreadsheet configured for daily reports');
+        }
+        
+        // Get WooCommerce data
+        $wc_service = new WooCommerceDataService();
+        $orders_data = $wc_service->getDailyOrdersData($date);
+        
+        if (empty($orders_data['orders'])) {
+            error_log("MFX Reporting: No orders found for date {$date}");
+            return [
+                'success' => true,
+                'message' => "No orders found for {$date}",
+                'revenue' => 0
+            ];
+        }
+        
+        // Format data for Google Sheets
+        $formatted_data = $wc_service->formatForGoogleSheets($orders_data);
+        
+        // Create sheet name with date
+        $sheet_name = date('Y-m-d', strtotime($date));
+        
+        try {
+            // Create new sheet
+            $this->createSheet($spreadsheet_id, $sheet_name);
+            
+            // Write data to sheet
+            $this->writeToSheet($spreadsheet_id, $sheet_name, $formatted_data);
+            
+            error_log("MFX Reporting: Successfully exported daily report for {$date}. Revenue: $" . number_format($orders_data['total_revenue'], 2));
+            
+            return [
+                'success' => true,
+                'message' => "Daily report exported successfully for {$date}",
+                'revenue' => $orders_data['total_revenue'],
+                'order_count' => $orders_data['order_count'],
+                'sheet_name' => $sheet_name
+            ];
+            
+        } catch (\Exception $e) {
+            error_log("MFX Reporting: Failed to export daily report for {$date}: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }

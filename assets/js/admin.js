@@ -204,9 +204,12 @@ jQuery(document).ready(function($) {
             });
         });
         
+        // Test daily export button
+        $('#test-daily-export-btn').on('click', testDailyExport);
+        
         // Initialize any other functionality here if needed
     }
-    
+
     function setupMessageListener() {
         // Listen for messages from OAuth popup
         window.addEventListener('message', function(event) {
@@ -221,12 +224,12 @@ jQuery(document).ready(function($) {
             }
         });
     }
-    
+
     function loadSpreadsheets() {
         if (!$('.spreadsheet-dropdown').length) {
             return;
         }
-        
+
         $.ajax({
             url: mfxReporting.ajaxUrl,
             type: 'POST',
@@ -246,42 +249,42 @@ jQuery(document).ready(function($) {
             }
         });
     }
-    
+
     function populateSpreadsheetDropdowns(spreadsheets) {
         $('.spreadsheet-dropdown').each(function() {
             const $select = $(this);
             const currentValue = $select.data('current-value') || '';
-            
+
             // Clear existing options except the first one
             $select.find('option:not(:first)').remove();
-            
+
             // Add spreadsheet options
             spreadsheets.forEach(function(sheet) {
                 const $option = $('<option></option>')
                     .attr('value', sheet.id)
                     .text(sheet.name);
-                
+
                 if (sheet.id === currentValue) {
                     $option.prop('selected', true);
                 }
-                
+
                 $select.append($option);
             });
         });
     }
-    
+
     function initializeReportConfigs() {
         // Initialize any other functionality here if needed
     }
-    
+
     function connectToGoogleSheets() {
         const $button = $('#connect-google-sheets');
         const $spinner = $button.siblings('.spinner');
-        
+
         $button.prop('disabled', true);
         $spinner.addClass('is-active');
         showMessage(mfxReporting.strings.openingPopup, 'info');
-        
+
         // Get OAuth URL from server
         $.ajax({
             url: mfxReporting.ajaxUrl,
@@ -298,14 +301,14 @@ jQuery(document).ready(function($) {
                         'google_oauth',
                         'width=500,height=600,scrollbars=yes,resizable=yes'
                     );
-                    
+
                     if (!popup || popup.closed || typeof popup.closed == 'undefined') {
                         showMessage(mfxReporting.strings.popupBlocked, 'error');
                         $button.prop('disabled', false);
                         $spinner.removeClass('is-active');
                         return;
                     }
-                    
+
                     // Check if popup is closed manually
                     const checkClosed = setInterval(function() {
                         if (popup.closed) {
@@ -315,7 +318,7 @@ jQuery(document).ready(function($) {
                             hideMessage();
                         }
                     }, 1000);
-                    
+
                 } else {
                     showMessage(response.data.message, 'error');
                     $button.prop('disabled', false);
@@ -329,15 +332,15 @@ jQuery(document).ready(function($) {
             }
         });
     }
-    
+
     function testConnection() {
         const $button = $('#test-google-connection');
         const $spinner = $button.siblings('.spinner');
-        
+
         $button.prop('disabled', true);
         $spinner.addClass('is-active');
         showMessage(mfxReporting.strings.connecting, 'info');
-        
+
         $.ajax({
             url: mfxReporting.ajaxUrl,
             type: 'POST',
@@ -361,19 +364,19 @@ jQuery(document).ready(function($) {
             }
         });
     }
-    
+
     function disconnectGoogle() {
         if (!confirm('Are you sure you want to disconnect from Google Sheets?')) {
             return;
         }
-        
+
         const $button = $('#disconnect-google');
         const $spinner = $button.siblings('.spinner');
-        
+
         $button.prop('disabled', true);
         $spinner.addClass('is-active');
         showMessage(mfxReporting.strings.disconnecting, 'info');
-        
+
         $.ajax({
             url: mfxReporting.ajaxUrl,
             type: 'POST',
@@ -401,21 +404,73 @@ jQuery(document).ready(function($) {
             }
         });
     }
-    
+
+    function testDailyExport() {
+        const testBtn = $('#test-daily-export-btn');
+        const dateInput = $('#test-export-date');
+        const resultDiv = $('#test-export-result');
+
+        // Disable button and show loading
+        testBtn.prop('disabled', true).text('Exporting...');
+        resultDiv.hide();
+
+        $.ajax({
+            url: mfxReporting.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'mfx_reporting_test_daily_export',
+                nonce: mfxReporting.nonce,
+                date: dateInput.val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    resultDiv
+                        .removeClass('notice-error')
+                        .addClass('notice-success')
+                        .html(`
+                            <p><strong>Export Successful!</strong></p>
+                            <p>${response.data.message}</p>
+                            ${response.data.revenue ? `<p>Revenue: $${response.data.revenue}</p>` : ''}
+                            ${response.data.order_count ? `<p>Orders: ${response.data.order_count}</p>` : ''}
+                            ${response.data.sheet_name ? `<p>Sheet: ${response.data.sheet_name}</p>` : ''}
+                        `)
+                        .show();
+                } else {
+                    resultDiv
+                        .removeClass('notice-success')
+                        .addClass('notice-error')
+                        .html(`<p><strong>Export Failed:</strong> ${response.data.message}</p>`)
+                        .show();
+                }
+            },
+            error: function() {
+                resultDiv
+                    .removeClass('notice-success')
+                    .addClass('notice-error')
+                    .html('<p><strong>Error:</strong> Failed to communicate with server</p>')
+                    .show();
+            },
+            complete: function() {
+                // Re-enable button
+                testBtn.prop('disabled', false).text('Test Daily Export');
+            }
+        });
+    }
+
     function showMessage(message, type) {
         const $messages = $('#connection-messages');
         const $messageText = $('#connection-message-text');
-        
+
         // Remove existing classes
         $messages.removeClass('notice-success notice-error notice-info notice-warning');
-        
+
         // Add appropriate class
         $messages.addClass('notice-' + type);
-        
+
         // Set message and show
         $messageText.text(message);
         $messages.slideDown();
-        
+
         // Auto-hide success messages after 5 seconds
         if (type === 'success') {
             setTimeout(function() {
@@ -423,11 +478,11 @@ jQuery(document).ready(function($) {
             }, 5000);
         }
     }
-    
+
     function hideMessage() {
         $('#connection-messages').slideUp();
     }
-    
+
     // Spinner styles
     $('.spinner').css({
         'float': 'none',
