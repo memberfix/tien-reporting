@@ -112,7 +112,7 @@ jQuery(document).ready(function($) {
                     }
                 },
                 error: function(e) {
-                    showMessage('Connection test failed. Please try again.' + e.message, 'error');
+                    showMessage('Connection test failed. Please try again.' + e, 'error');
                 },
                 complete: function() {
                     $button.prop('disabled', false).text('Test Connection');
