@@ -180,17 +180,7 @@ jQuery(document).ready(function($) {
             });
         });
         
-        // Toggle report configurations based on checkboxes
-        $('input[id$="_enabled"]').on('change', function() {
-            const frequency = this.id.replace('_enabled', '');
-            const $config = $('#' + frequency + '-config');
-            
-            if (this.checked) {
-                $config.slideDown();
-            } else {
-                $config.slideUp();
-            }
-        });
+        // Initialize any other functionality here if needed
     }
     
     function setupMessageListener() {
@@ -265,16 +255,7 @@ jQuery(document).ready(function($) {
     }
     
     function initializeReportConfigs() {
-        $('input[id$="_enabled"]').each(function() {
-            const frequency = this.id.replace('_enabled', '');
-            const $config = $('#' + frequency + '-config');
-            
-            if (this.checked) {
-                $config.show();
-            } else {
-                $config.hide();
-            }
-        });
+        // Initialize any other functionality here if needed
     }
     
     function connectToGoogleSheets() {
