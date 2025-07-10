@@ -111,8 +111,35 @@ jQuery(document).ready(function($) {
                         showMessage('Connection test failed: ' + response.data.message, 'error');
                     }
                 },
-                error: function(e) {
-                    showMessage('Connection test failed. Please try again.' + e.message, 'error');
+                error: function(xhr, status, error) {
+                    console.log('AJAX Error Details:');
+                    console.log('XHR:', xhr);
+                    console.log('Status:', status);
+                    console.log('Error:', error);
+                    console.log('Response Text:', xhr.responseText);
+                    console.log('Status Code:', xhr.status);
+                    
+                    let errorMessage = 'Connection test failed. ';
+                    errorMessage += 'Status: ' + xhr.status + ' (' + status + '). ';
+                    
+                    if (xhr.responseText) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.data && response.data.message) {
+                                errorMessage += 'Server message: ' + response.data.message;
+                            } else if (response.message) {
+                                errorMessage += 'Server message: ' + response.message;
+                            } else {
+                                errorMessage += 'Response: ' + xhr.responseText.substring(0, 200);
+                            }
+                        } catch (e) {
+                            errorMessage += 'Response: ' + xhr.responseText.substring(0, 200);
+                        }
+                    } else {
+                        errorMessage += 'Error: ' + error;
+                    }
+                    
+                    showMessage(errorMessage, 'error');
                 },
                 complete: function() {
                     $button.prop('disabled', false).text('Test Connection');
@@ -359,8 +386,35 @@ jQuery(document).ready(function($) {
                     showMessage(response.data.message, 'error');
                 }
             },
-            error: function() {
-                showMessage(mfxReporting.strings.connectionFailed, 'error');
+            error: function(xhr, status, error) {
+                console.log('AJAX Error Details:');
+                console.log('XHR:', xhr);
+                console.log('Status:', status);
+                console.log('Error:', error);
+                console.log('Response Text:', xhr.responseText);
+                console.log('Status Code:', xhr.status);
+                
+                let errorMessage = 'Connection test failed. ';
+                errorMessage += 'Status: ' + xhr.status + ' (' + status + '). ';
+                
+                if (xhr.responseText) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.data && response.data.message) {
+                            errorMessage += 'Server message: ' + response.data.message;
+                        } else if (response.message) {
+                            errorMessage += 'Server message: ' + response.message;
+                        } else {
+                            errorMessage += 'Response: ' + xhr.responseText.substring(0, 200);
+                        }
+                    } catch (e) {
+                        errorMessage += 'Response: ' + xhr.responseText.substring(0, 200);
+                    }
+                } else {
+                    errorMessage += 'Error: ' + error;
+                }
+                
+                showMessage(errorMessage, 'error');
             },
             complete: function() {
                 $button.prop('disabled', false);
