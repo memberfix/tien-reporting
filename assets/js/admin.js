@@ -204,8 +204,13 @@ jQuery(document).ready(function($) {
             });
         });
         
-        // Test daily export button
-        $('#test-daily-export-btn').on('click', testDailyExport);
+        console.log('Attaching click handler to #test-daily-export-btn');
+        console.log('Button element:', $('#test-daily-export-btn'));
+        console.log('Button length:', $('#test-daily-export-btn').length);
+        $('#test-daily-export-btn').on('click', function(e) {
+            console.log('Test daily export button clicked!');
+            testDailyExport();
+        });
         
         // Initialize any other functionality here if needed
     }
@@ -406,13 +411,21 @@ jQuery(document).ready(function($) {
     }
 
     function testDailyExport() {
+        console.log('testDailyExport function called');
+        
         const testBtn = $('#test-daily-export-btn');
         const dateInput = $('#test-export-date');
         const resultDiv = $('#test-export-result');
+        
+        console.log('Button:', testBtn);
+        console.log('Date input:', dateInput);
+        console.log('Result div:', resultDiv);
 
         // Disable button and show loading
         testBtn.prop('disabled', true).text('Exporting...');
         resultDiv.hide();
+
+        console.log('Making AJAX request...');
 
         $.ajax({
             url: mfxReporting.ajaxUrl,
@@ -423,6 +436,7 @@ jQuery(document).ready(function($) {
                 date: dateInput.val()
             },
             success: function(response) {
+                console.log('AJAX Success:', response);
                 if (response.success) {
                     resultDiv
                         .removeClass('notice-error')
@@ -443,7 +457,8 @@ jQuery(document).ready(function($) {
                         .show();
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.log('AJAX Error:', xhr, status, error);
                 resultDiv
                     .removeClass('notice-success')
                     .addClass('notice-error')
@@ -451,6 +466,7 @@ jQuery(document).ready(function($) {
                     .show();
             },
             complete: function() {
+                console.log('AJAX Complete');
                 // Re-enable button
                 testBtn.prop('disabled', false).text('Test Daily Export');
             }
