@@ -101,7 +101,7 @@ jQuery(document).ready(function($) {
                 url: mfxReporting.ajaxUrl,
                 type: 'POST',
                 data: {
-                    action: 'mfx_test_connection',
+                    action: 'mfx_test_google_connection',
                     nonce: mfxReporting.nonce
                 },
                 success: function(response) {
@@ -112,7 +112,7 @@ jQuery(document).ready(function($) {
                     }
                 },
                 error: function(e) {
-                    showMessage('Connection test failed. Please try again.' + e, 'error');
+                    showMessage('Connection test failed. Please try again.' + e.message, 'error');
                 },
                 complete: function() {
                     $button.prop('disabled', false).text('Test Connection');
