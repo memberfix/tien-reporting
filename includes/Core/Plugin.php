@@ -110,7 +110,7 @@ class Plugin {
      * Enqueue admin assets
      */
     public function enqueueAssets($hook) {
-        if ($hook !== 'toplevel_page_mfx-reporting') {
+        if ($hook !== 'mfx-reporting_page_mfx-reporting') {
             return;
         }
         
