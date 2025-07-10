@@ -39,6 +39,11 @@ class WooCommerceDataService {
         $order_count = 0;
         
         foreach ($orders as $order) {
+            // Skip if this is not a WC_Order (could be refund or other type)
+            if (!$order instanceof \WC_Order) {
+                continue;
+            }
+            
             $order_total = $order->get_total();
             $total_revenue += $order_total;
             $order_count++;
