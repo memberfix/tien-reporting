@@ -193,6 +193,10 @@ jQuery(document).ready(function($) {
                     console.log('MFX Debug: Save response:', response);
                     if (response.success) {
                         showMessage('Scheduled reports settings saved successfully!', 'success');
+                        // Reload page to show saved values
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
                     } else {
                         console.log('MFX Debug: Save failed with message:', response.data?.message);
                         showMessage('Save failed: ' + (response.data?.message || 'Unknown error'), 'error');

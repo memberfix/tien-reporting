@@ -20,6 +20,7 @@ class AdminView {
      */
     public function renderSettingsPage() {
         $is_connected = $this->google_sheets_service->isConnected();
+        $scheduled_reports = get_option('mfx_reporting_scheduled_reports', []);
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
