@@ -156,8 +156,6 @@ jQuery(document).ready(function($) {
             const $spinner = $button.siblings('.spinner');
             const $form = $('#scheduled-reports-form');
             
-            console.log('MFX Debug: Save button clicked');
-            
             $button.prop('disabled', true);
             $spinner.addClass('is-active');
             
@@ -170,8 +168,6 @@ jQuery(document).ready(function($) {
                 monthly_spreadsheet: $('#monthly_spreadsheet').val()
             };
             
-            console.log('MFX Debug: Form data:', formData);
-            
             // Only include enabled reports (those with selected spreadsheets)
             if (formData.daily_spreadsheet) {
                 formData.daily_enabled = '1';
@@ -183,14 +179,11 @@ jQuery(document).ready(function($) {
                 formData.monthly_enabled = '1';
             }
             
-            console.log('MFX Debug: Final form data:', formData);
-            
             $.ajax({
                 url: mfxReporting.ajaxUrl,
                 type: 'POST',
                 data: formData,
                 success: function(response) {
-                    console.log('MFX Debug: Save response:', response);
                     if (response.success) {
                         showMessage('Scheduled reports settings saved successfully!', 'success');
                         // Reload page to show saved values
@@ -198,14 +191,10 @@ jQuery(document).ready(function($) {
                             window.location.reload();
                         }, 1500);
                     } else {
-                        console.log('MFX Debug: Save failed with message:', response.data?.message);
                         showMessage('Save failed: ' + (response.data?.message || 'Unknown error'), 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log('MFX Debug: AJAX error saving reports:', error);
-                    console.log('MFX Debug: Response text:', xhr.responseText);
-                    console.log('MFX Debug: Status:', status);
                     showMessage('Save failed. Please try again.', 'error');
                 },
                 complete: function() {
@@ -235,11 +224,8 @@ jQuery(document).ready(function($) {
     
     function loadSpreadsheets() {
         if (!$('.spreadsheet-dropdown').length) {
-            console.log('MFX Debug: No spreadsheet dropdowns found');
             return;
         }
-        
-        console.log('MFX Debug: Loading spreadsheets...');
         
         $.ajax({
             url: mfxReporting.ajaxUrl,
@@ -249,19 +235,14 @@ jQuery(document).ready(function($) {
                 nonce: mfxReporting.nonce
             },
             success: function(response) {
-                console.log('MFX Debug: Spreadsheets response:', response);
                 if (response.success && response.data) {
                     // Check if data has spreadsheets array (from getSpreadsheets method)
                     const spreadsheets = response.data.spreadsheets || response.data;
-                    console.log('MFX Debug: Extracted spreadsheets:', spreadsheets);
                     populateSpreadsheetDropdowns(spreadsheets);
                 } else {
-                    console.log('MFX Debug: Failed to load spreadsheets:', response.data?.message || 'Unknown error');
                 }
             },
             error: function(xhr, status, error) {
-                console.log('MFX Debug: AJAX error loading spreadsheets:', error);
-                console.log('MFX Debug: Response:', xhr.responseText);
             }
         });
     }
