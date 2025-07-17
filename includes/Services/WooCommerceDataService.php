@@ -589,4 +589,170 @@ class WooCommerceDataService {
         
         return $formatted_data;
     }
+    
+    /**
+     * Get detailed orders for the date range
+     */
+    private function getDetailedOrders($date_range) {
+        $orders = wc_get_orders([
+            'status' => ['completed', 'processing', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+        
+        $detailed_orders = [];
+        
+        foreach ($orders as $order) {
+            if (!$order instanceof \WC_Order) {
+                continue;
+            }
+            
+            // Calculate order metrics
+            $subtotal = $order->get_subtotal();
+            $discount = $order->get_discount_total();
+            $refund_total = $order->get_total_refunded();
+            $gross_revenue = $subtotal; // Excluding shipping and taxes
+            $net_revenue = $gross_revenue - $discount - $refund_total;
+            
+            // Check if this is a trial order
+            $is_trial = $this->isTrialOrder($order);
+            
+            // Check if this is a new member
+            $is_new_member = $this->isNewMemberOrder($order);
+            
+            // Get product names
+            $products = [];
+            foreach ($order->get_items() as $item) {
+                $product = $item->get_product();
+                if ($product) {
+                    $products[] = $product->get_name();
+                }
+            }
+            
+            $detailed_orders[] = [
+                'order_id' => $order->get_id(),
+                'date' => $order->get_date_created()->date('Y-m-d H:i:s'),
+                'customer_name' => trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()),
+                'customer_email' => $order->get_billing_email(),
+                'gross_revenue' => $gross_revenue,
+                'net_revenue' => $net_revenue,
+                'discounts' => $discount,
+                'refunds' => $refund_total,
+                'is_trial' => $is_trial,
+                'is_new_member' => $is_new_member,
+                'products' => implode(', ', $products)
+            ];
+        }
+        
+        return $detailed_orders;
+    }
+    
+    /**
+     * Get detailed cancellations for the date range
+     */
+    private function getDetailedCancellations($date_range) {
+        // Check if WooCommerce Subscriptions is active
+        if (!function_exists('wcs_get_subscriptions')) {
+            return [];
+        }
+        
+        $subscriptions = wcs_get_subscriptions([
+            'subscription_status' => ['cancelled'],
+            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+        
+        $detailed_cancellations = [];
+        
+        foreach ($subscriptions as $subscription) {
+            if (!$subscription instanceof \WC_Subscription) {
+                continue;
+            }
+            
+            // Calculate days active
+            $date_created = $subscription->get_date_created();
+            $date_cancelled = $subscription->get_date_modified();
+            $days_active = $date_created->diff($date_cancelled)->days;
+            
+            // Get subscription value
+            $subscription_value = $subscription->get_total();
+            
+            // Get cancellation reason (if available)
+            $cancellation_reason = $subscription->get_meta('_cancellation_reason', true);
+            if (empty($cancellation_reason)) {
+                $cancellation_reason = 'Not specified';
+            }
+            
+            // Get product names
+            $products = [];
+            foreach ($subscription->get_items() as $item) {
+                $product = $item->get_product();
+                if ($product) {
+                    $products[] = $product->get_name();
+                }
+            }
+            
+            $detailed_cancellations[] = [
+                'subscription_id' => $subscription->get_id(),
+                'date_cancelled' => $date_cancelled->date('Y-m-d H:i:s'),
+                'customer_name' => trim($subscription->get_billing_first_name() . ' ' . $subscription->get_billing_last_name()),
+                'customer_email' => $subscription->get_billing_email(),
+                'subscription_value' => $subscription_value,
+                'cancellation_reason' => $cancellation_reason,
+                'days_active' => $days_active,
+                'products' => implode(', ', $products)
+            ];
+        }
+        
+        return $detailed_cancellations;
+    }
+    
+    /**
+     * Check if an order is for a trial subscription
+     */
+    private function isTrialOrder($order) {
+        // Check if order has subscription items
+        if (!function_exists('wcs_order_contains_subscription')) {
+            return false;
+        }
+        
+        if (!wcs_order_contains_subscription($order)) {
+            return false;
+        }
+        
+        // Check if any subscription from this order has trial
+        $subscriptions = wcs_get_subscriptions_for_order($order);
+        foreach ($subscriptions as $subscription) {
+            if ($this->subscriptionHasTrial($subscription)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if an order represents a new member (paid subscription, not trial)
+     */
+    private function isNewMemberOrder($order) {
+        // Check if order has subscription items
+        if (!function_exists('wcs_order_contains_subscription')) {
+            return false;
+        }
+        
+        if (!wcs_order_contains_subscription($order)) {
+            return false;
+        }
+        
+        // Check if this creates a new paid subscription (not trial)
+        $subscriptions = wcs_get_subscriptions_for_order($order);
+        foreach ($subscriptions as $subscription) {
+            // New member if it's NOT a trial OR if trial has ended
+            if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 }
