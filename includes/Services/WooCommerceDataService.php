@@ -292,7 +292,7 @@ class WooCommerceDataService {
         $trial_count = 0;
         
         foreach ($subscriptions as $subscription) {
-            if ($subscription->has_trial()) {
+            if ($this->subscriptionHasTrial($subscription)) {
                 $trial_count++;
             }
         }
@@ -319,7 +319,7 @@ class WooCommerceDataService {
         
         foreach ($subscriptions as $subscription) {
             // Only count as new member if it's not a trial or if trial period has ended
-            if (!$subscription->has_trial() || $subscription->get_trial_end_date() < time()) {
+            if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
                 $new_members++;
             }
         }
@@ -424,6 +424,46 @@ class WooCommerceDataService {
             default:
                 return $total; // Default to actual price
         }
+    }
+    
+    /**
+     * Check if a subscription has a trial period
+     */
+    private function subscriptionHasTrial($subscription) {
+        // Method 1: Check if trial end date exists and is in the future from creation
+        $trial_end = $subscription->get_trial_end_date();
+        if ($trial_end && $trial_end > $subscription->get_date_created()) {
+            return true;
+        }
+        
+        // Method 2: Check if there's a trial period in the subscription meta
+        $trial_period = $subscription->get_trial_period();
+        $trial_length = $subscription->get_trial_length();
+        
+        if (!empty($trial_period) && $trial_length > 0) {
+            return true;
+        }
+        
+        // Method 3: Check if subscription has a $0 initial payment (sign-up fee)
+        $sign_up_fee = $subscription->get_sign_up_fee();
+        $initial_payment = $subscription->get_total_initial_payment();
+        
+        if ($sign_up_fee == 0 && $initial_payment == 0) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if a subscription's trial period has ended
+     */
+    private function subscriptionTrialHasEnded($subscription) {
+        $trial_end = $subscription->get_trial_end_date();
+        if ($trial_end) {
+            return $trial_end < time();
+        }
+        return false;
     }
     
     /**
