@@ -186,11 +186,11 @@ class AdminView {
             <div class="card">
                 <h2><?php _e('Test Daily Export', 'mfx-reporting'); ?></h2>
                 <div class="card-content">
-                    <p><?php _e('Manually trigger a daily export for testing purposes.', 'mfx-reporting'); ?></p>
+                    <p><?php _e('Manually trigger a daily export with comprehensive metrics for testing purposes.', 'mfx-reporting'); ?></p>
                     
                     <div class="form-group">
-                        <label for="test-export-date"><?php _e('Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
-                        <input type="date" id="test-export-date" name="test_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                        <label for="test-daily-export-date"><?php _e('Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-daily-export-date" name="test_daily_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
                     </div>
                     
                     <div class="form-group">
@@ -199,7 +199,49 @@ class AdminView {
                         </button>
                     </div>
                     
-                    <div id="test-export-result" class="notice" style="display: none;"></div>
+                    <div id="test-daily-export-result" class="notice" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Manual Test Weekly Export -->
+            <div class="card">
+                <h2><?php _e('Test Weekly Export', 'mfx-reporting'); ?></h2>
+                <div class="card-content">
+                    <p><?php _e('Manually trigger a weekly export with comprehensive metrics (last 7 days) for testing purposes.', 'mfx-reporting'); ?></p>
+                    
+                    <div class="form-group">
+                        <label for="test-weekly-export-date"><?php _e('End Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-weekly-export-date" name="test_weekly_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" id="test-weekly-export-btn" class="button button-secondary">
+                            <?php _e('Test Weekly Export', 'mfx-reporting'); ?>
+                        </button>
+                    </div>
+                    
+                    <div id="test-weekly-export-result" class="notice" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Manual Test Monthly Export -->
+            <div class="card">
+                <h2><?php _e('Test Monthly Export', 'mfx-reporting'); ?></h2>
+                <div class="card-content">
+                    <p><?php _e('Manually trigger a monthly export with comprehensive metrics (last 30 days) for testing purposes.', 'mfx-reporting'); ?></p>
+                    
+                    <div class="form-group">
+                        <label for="test-monthly-export-date"><?php _e('End Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-monthly-export-date" name="test_monthly_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" id="test-monthly-export-btn" class="button button-secondary">
+                            <?php _e('Test Monthly Export', 'mfx-reporting'); ?>
+                        </button>
+                    </div>
+                    
+                    <div id="test-monthly-export-result" class="notice" style="display: none;"></div>
                 </div>
             </div>
 

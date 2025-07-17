@@ -59,8 +59,8 @@ class CronService {
                 return;
             }
             
-            // Export daily report
-            $result = $google_sheets_service->exportDailyReport();
+            // Export daily report with comprehensive metrics
+            $result = $google_sheets_service->exportComprehensiveReport('daily');
             
             if ($result['success']) {
                 error_log('MFX Reporting: Daily export completed successfully - ' . $result['message']);
@@ -88,8 +88,14 @@ class CronService {
                 return;
             }
             
-            // TODO: Implement weekly export logic
-            error_log('MFX Reporting: Weekly export not yet implemented');
+            // Export weekly report with comprehensive metrics
+            $result = $google_sheets_service->exportComprehensiveReport('weekly');
+            
+            if ($result['success']) {
+                error_log('MFX Reporting: Weekly export completed successfully - ' . $result['message']);
+            } else {
+                error_log('MFX Reporting: Weekly export failed - ' . $result['message']);
+            }
             
         } catch (\Exception $e) {
             error_log('MFX Reporting: Weekly export cron job failed: ' . $e->getMessage());
@@ -111,8 +117,14 @@ class CronService {
                 return;
             }
             
-            // TODO: Implement monthly export logic
-            error_log('MFX Reporting: Monthly export not yet implemented');
+            // Export monthly report with comprehensive metrics
+            $result = $google_sheets_service->exportComprehensiveReport('monthly');
+            
+            if ($result['success']) {
+                error_log('MFX Reporting: Monthly export completed successfully - ' . $result['message']);
+            } else {
+                error_log('MFX Reporting: Monthly export failed - ' . $result['message']);
+            }
             
         } catch (\Exception $e) {
             error_log('MFX Reporting: Monthly export cron job failed: ' . $e->getMessage());
@@ -124,7 +136,23 @@ class CronService {
      */
     public function triggerDailyExport($date = null) {
         $google_sheets_service = new GoogleSheetsService();
-        return $google_sheets_service->exportDailyReport($date);
+        return $google_sheets_service->exportComprehensiveReport('daily', $date);
+    }
+    
+    /**
+     * Manually trigger weekly export (for testing)
+     */
+    public function triggerWeeklyExport($date = null) {
+        $google_sheets_service = new GoogleSheetsService();
+        return $google_sheets_service->exportComprehensiveReport('weekly', $date);
+    }
+    
+    /**
+     * Manually trigger monthly export (for testing)
+     */
+    public function triggerMonthlyExport($date = null) {
+        $google_sheets_service = new GoogleSheetsService();
+        return $google_sheets_service->exportComprehensiveReport('monthly', $date);
     }
     
     /**

@@ -489,4 +489,78 @@ class GoogleSheetsService {
             throw $e;
         }
     }
+    
+    /**
+     * Export comprehensive report to Google Sheets (daily, weekly, or monthly)
+     */
+    public function exportComprehensiveReport($period = 'daily', $date = null) {
+        if (!$date) {
+            $date = date('Y-m-d', strtotime('-1 day')); // Default to yesterday
+        }
+        
+        // Check if reports are enabled for this period
+        if (!$this->isFrequencyEnabled($period)) {
+            throw new \Exception(ucfirst($period) . ' reports are not enabled');
+        }
+        
+        $spreadsheet_id = $this->getSpreadsheetId($period);
+        if (!$spreadsheet_id) {
+            throw new \Exception('No spreadsheet configured for ' . $period . ' reports');
+        }
+        
+        // Get comprehensive WooCommerce data
+        $wc_service = new WooCommerceDataService();
+        $report_data = $wc_service->getReportData($period, $date);
+        
+        // Format data for Google Sheets
+        $formatted_data = $wc_service->formatReportForGoogleSheets($report_data);
+        
+        // Create sheet name with date and period
+        $sheet_name = $this->generateSheetName($period, $date);
+        
+        try {
+            // Create new sheet
+            $this->createSheet($spreadsheet_id, $sheet_name);
+            
+            // Write data to sheet
+            $this->writeToSheet($spreadsheet_id, $sheet_name, $formatted_data);
+            
+            error_log("MFX Reporting: Successfully exported {$period} report for {$date}. Net Revenue: $" . number_format($report_data['net_revenue'], 2));
+            
+            return [
+                'success' => true,
+                'message' => ucfirst($period) . " report exported successfully for {$date}",
+                'period' => $period,
+                'date' => $date,
+                'net_revenue' => $report_data['net_revenue'],
+                'gross_revenue' => $report_data['gross_revenue'],
+                'new_members' => $report_data['new_members'],
+                'cancellations' => $report_data['cancellations'],
+                'rolling_ltv' => $report_data['rolling_ltv'],
+                'sheet_name' => $sheet_name
+            ];
+            
+        } catch (\Exception $e) {
+            error_log("MFX Reporting: Failed to export {$period} report for {$date}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    /**
+     * Generate sheet name based on period and date
+     */
+    private function generateSheetName($period, $date) {
+        switch ($period) {
+            case 'daily':
+                return date('Y-m-d', strtotime($date));
+            case 'weekly':
+                $week_start = date('Y-m-d', strtotime($date . ' -6 days'));
+                return "Week {$week_start} to {$date}";
+            case 'monthly':
+                $month_start = date('Y-m-d', strtotime($date . ' -29 days'));
+                return "Month {$month_start} to {$date}";
+            default:
+                return date('Y-m-d', strtotime($date));
+        }
+    }
 }
