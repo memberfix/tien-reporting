@@ -19,7 +19,7 @@ class WooCommerceDataService {
      * Get comprehensive report data for a date range
      */
     public function getReportData($period = 'weekly', $date = null) {
-        if (!$date) {
+        if (empty($date)) {
             $date = $this->getYesterdayDate();
         }
         

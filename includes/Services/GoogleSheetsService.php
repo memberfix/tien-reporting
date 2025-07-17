@@ -425,7 +425,7 @@ class GoogleSheetsService {
      * Export comprehensive report to Google Sheets (weekly or monthly)
      */
     public function exportComprehensiveReport($period = 'weekly', $date = null) {
-        if (!$date) {
+        if (empty($date)) {
             $date = date('Y-m-d', strtotime('-1 day')); // Default to yesterday
         }
         
