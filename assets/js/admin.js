@@ -543,7 +543,7 @@ jQuery(document).ready(function($) {
         console.log('testMonthlyExport function called');
         
         const testBtn = $('#test-monthly-export-btn');
-        const dateInput = $('#test-export-date');
+        const dateInput = $('#test-monthly-export-date');
         const resultDiv = $('#test-export-result');
         
         console.log('Button:', testBtn);
