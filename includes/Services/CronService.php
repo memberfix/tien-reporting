@@ -11,7 +11,6 @@ class CronService {
     /**
      * Cron hook names
      */
-    const DAILY_HOOK = 'mfx_reporting_daily_export';
     const WEEKLY_HOOK = 'mfx_reporting_weekly_export';
     const MONTHLY_HOOK = 'mfx_reporting_monthly_export';
     
@@ -19,11 +18,6 @@ class CronService {
      * Register all cron jobs
      */
     public function registerCronJobs() {
-        // Register daily cron job (runs at midnight)
-        if (!wp_next_scheduled(self::DAILY_HOOK)) {
-            wp_schedule_event(strtotime('tomorrow midnight'), 'daily', self::DAILY_HOOK);
-        }
-        
         // Register weekly cron job (runs every Monday at midnight)
         if (!wp_next_scheduled(self::WEEKLY_HOOK)) {
             wp_schedule_event(strtotime('next monday midnight'), 'weekly', self::WEEKLY_HOOK);
@@ -39,38 +33,8 @@ class CronService {
      * Unregister all cron jobs
      */
     public function unregisterCronJobs() {
-        wp_clear_scheduled_hook(self::DAILY_HOOK);
         wp_clear_scheduled_hook(self::WEEKLY_HOOK);
         wp_clear_scheduled_hook(self::MONTHLY_HOOK);
-    }
-    
-    /**
-     * Handle daily export cron job
-     */
-    public function handleDailyExport() {
-        try {
-            error_log('MFX Reporting: Starting daily export cron job');
-            
-            $google_sheets_service = new GoogleSheetsService();
-            
-            // Check if daily reports are enabled
-            if (!$google_sheets_service->isFrequencyEnabled('daily')) {
-                error_log('MFX Reporting: Daily reports are not enabled, skipping export');
-                return;
-            }
-            
-            // Export daily report with comprehensive metrics
-            $result = $google_sheets_service->exportComprehensiveReport('daily');
-            
-            if ($result['success']) {
-                error_log('MFX Reporting: Daily export completed successfully - ' . $result['message']);
-            } else {
-                error_log('MFX Reporting: Daily export failed - ' . $result['message']);
-            }
-            
-        } catch (\Exception $e) {
-            error_log('MFX Reporting: Daily export cron job failed: ' . $e->getMessage());
-        }
     }
     
     /**
@@ -132,14 +96,6 @@ class CronService {
     }
     
     /**
-     * Manually trigger daily export (for testing)
-     */
-    public function triggerDailyExport($date = null) {
-        $google_sheets_service = new GoogleSheetsService();
-        return $google_sheets_service->exportComprehensiveReport('daily', $date);
-    }
-    
-    /**
      * Manually trigger weekly export (for testing)
      */
     public function triggerWeeklyExport($date = null) {
@@ -160,7 +116,6 @@ class CronService {
      */
     public function getScheduledTimes() {
         return [
-            'daily' => wp_next_scheduled(self::DAILY_HOOK),
             'weekly' => wp_next_scheduled(self::WEEKLY_HOOK),
             'monthly' => wp_next_scheduled(self::MONTHLY_HOOK)
         ];
