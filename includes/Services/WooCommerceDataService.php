@@ -437,7 +437,7 @@ class WooCommerceDataService {
             $product_id = $item->get_product_id();
             
             // Check if this product has a trial period using the correct API
-            if (class_exists('WC_Subscriptions_Product') && WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
+            if (class_exists('\WC_Subscriptions_Product') && \WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
                 return true;
             }
         }
@@ -469,9 +469,9 @@ class WooCommerceDataService {
                 foreach ($subscription_items as $item) {
                     $product_id = $item->get_product_id();
                     
-                    if (class_exists('WC_Subscriptions_Product')) {
-                        $trial_length = WC_Subscriptions_Product::get_trial_length($product_id);
-                        $trial_period = WC_Subscriptions_Product::get_trial_period($product_id);
+                    if (class_exists('\WC_Subscriptions_Product')) {
+                        $trial_length = \WC_Subscriptions_Product::get_trial_length($product_id);
+                        $trial_period = \WC_Subscriptions_Product::get_trial_period($product_id);
                         
                         if ($trial_length > 0 && $trial_period) {
                             $trial_end_time = $date_created->getTimestamp() + ($trial_length * $this->getPeriodInSeconds($trial_period));
