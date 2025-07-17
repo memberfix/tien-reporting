@@ -128,7 +128,7 @@ class WooCommerceDataService {
         return date('Y-m-d', strtotime('-1 day'));
     }
     
-    /**
+     /**
      * Get comprehensive report data for a date range
      */
     public function getReportData($period = 'daily', $date = null) {
@@ -157,7 +157,9 @@ class WooCommerceDataService {
             'new_members' => $this->getNewMembers($date_range),
             'cancellations' => $this->getCancellations($date_range),
             'net_paid_subscriber_growth' => 0, // Calculated below
-            'rolling_ltv' => $this->getRollingLTV()
+            'rolling_ltv' => $this->getRollingLTV(),
+            'detailed_orders' => $this->getDetailedOrders($date_range),
+            'detailed_cancellations' => $this->getDetailedCancellations($date_range)
         ];
         
         // Calculate net paid subscriber growth
@@ -505,7 +507,7 @@ class WooCommerceDataService {
         }
     }
     
-    /**
+ /**
      * Format comprehensive report data for Google Sheets
      */
     public function formatReportForGoogleSheets($report_data) {
@@ -586,6 +588,97 @@ class WooCommerceDataService {
             'USD',
             'Average tenure (months) × subscription price per month'
         ];
+        
+        // Add empty row (row 12)
+        $formatted_data[] = [];
+        
+        // Add empty row (row 13)
+        $formatted_data[] = [];
+        
+        // Add detailed orders section starting from row 14
+        $formatted_data[] = [
+            'Order ID',
+            'Date',
+            'Customer',
+            'Email',
+            'Gross Revenue',
+            'Net Revenue',
+            'Discounts',
+            'Refunds',
+            'Is Trial',
+            'New Member',
+            'Products'
+        ];
+        
+        // Add individual order details
+        if (isset($report_data['detailed_orders'])) {
+            foreach ($report_data['detailed_orders'] as $order) {
+                $formatted_data[] = [
+                    $order['order_id'],
+                    $order['date'],
+                    $order['customer_name'],
+                    $order['customer_email'],
+                    '$' . number_format($order['gross_revenue'], 2),
+                    '$' . number_format($order['net_revenue'], 2),
+                    '$' . number_format($order['discounts'], 2),
+                    '$' . number_format($order['refunds'], 2),
+                    $order['is_trial'] ? 'Yes' : 'No',
+                    $order['is_new_member'] ? 'Yes' : 'No',
+                    $order['products']
+                ];
+            }
+        }
+        
+        // Add empty row before cancellations
+        $formatted_data[] = [];
+        
+        // Add cancellations section
+        $formatted_data[] = [
+            'CANCELLATIONS',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ];
+        
+        $formatted_data[] = [
+            'Subscription ID',
+            'Date Cancelled',
+            'Customer',
+            'Email',
+            'Subscription Value',
+            'Cancellation Reason',
+            'Days Active',
+            'Products',
+            '',
+            '',
+            ''
+        ];
+        
+        // Add individual cancellation details
+        if (isset($report_data['detailed_cancellations'])) {
+            foreach ($report_data['detailed_cancellations'] as $cancellation) {
+                $formatted_data[] = [
+                    $cancellation['subscription_id'],
+                    $cancellation['date_cancelled'],
+                    $cancellation['customer_name'],
+                    $cancellation['customer_email'],
+                    '$' . number_format($cancellation['subscription_value'], 2),
+                    $cancellation['cancellation_reason'],
+                    $cancellation['days_active'],
+                    $cancellation['products'],
+                    '',
+                    '',
+                    ''
+                ];
+            }
+        }
         
         return $formatted_data;
     }
