@@ -430,26 +430,16 @@ class WooCommerceDataService {
      * Check if a subscription has a trial period
      */
     private function subscriptionHasTrial($subscription) {
-        // Method 1: Check if trial end date exists and is in the future from creation
-        $trial_end = $subscription->get_trial_end_date();
-        if ($trial_end && $trial_end > $subscription->get_date_created()) {
-            return true;
-        }
+        // Get the subscription's products to check for trial
+        $subscription_items = $subscription->get_items();
         
-        // Method 2: Check if there's a trial period in the subscription meta
-        $trial_period = $subscription->get_trial_period();
-        $trial_length = $subscription->get_trial_length();
-        
-        if (!empty($trial_period) && $trial_length > 0) {
-            return true;
-        }
-        
-        // Method 3: Check if subscription has a $0 initial payment (sign-up fee)
-        $sign_up_fee = $subscription->get_sign_up_fee();
-        $initial_payment = $subscription->get_total_initial_payment();
-        
-        if ($sign_up_fee == 0 && $initial_payment == 0) {
-            return true;
+        foreach ($subscription_items as $item) {
+            $product_id = $item->get_product_id();
+            
+            // Check if this product has a trial period using the correct API
+            if (class_exists('WC_Subscriptions_Product') && WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
+                return true;
+            }
         }
         
         return false;
@@ -459,11 +449,60 @@ class WooCommerceDataService {
      * Check if a subscription's trial period has ended
      */
     private function subscriptionTrialHasEnded($subscription) {
-        $trial_end = $subscription->get_trial_end_date();
-        if ($trial_end) {
-            return $trial_end < time();
+        // Get trial end date using the correct method
+        if (method_exists($subscription, 'get_time')) {
+            $trial_end = $subscription->get_time('trial_end');
+            if ($trial_end && $trial_end < time()) {
+                return true;
+            }
         }
+        
+        // Alternative method: check if subscription has moved past trial
+        if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
+            // If it's active and has trial products, trial likely ended
+            $has_trial = $this->subscriptionHasTrial($subscription);
+            if ($has_trial) {
+                // Check if subscription has been active for more than trial period
+                $date_created = $subscription->get_date_created();
+                $subscription_items = $subscription->get_items();
+                
+                foreach ($subscription_items as $item) {
+                    $product_id = $item->get_product_id();
+                    
+                    if (class_exists('WC_Subscriptions_Product')) {
+                        $trial_length = WC_Subscriptions_Product::get_trial_length($product_id);
+                        $trial_period = WC_Subscriptions_Product::get_trial_period($product_id);
+                        
+                        if ($trial_length > 0 && $trial_period) {
+                            $trial_end_time = $date_created->getTimestamp() + ($trial_length * $this->getPeriodInSeconds($trial_period));
+                            if (time() > $trial_end_time) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         return false;
+    }
+    
+    /**
+     * Convert trial period to seconds
+     */
+    private function getPeriodInSeconds($period) {
+        switch ($period) {
+            case 'day':
+                return 86400; // 24 * 60 * 60
+            case 'week':
+                return 604800; // 7 * 24 * 60 * 60
+            case 'month':
+                return 2592000; // 30 * 24 * 60 * 60
+            case 'year':
+                return 31536000; // 365 * 24 * 60 * 60
+            default:
+                return 86400; // Default to day
+        }
     }
     
     /**
