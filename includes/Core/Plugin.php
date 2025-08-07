@@ -60,7 +60,6 @@ class Plugin {
         add_action('wp', [$this, 'registerCronJobs']);
         
         // Hook cron job handlers
-        add_action('mfx_reporting_daily_export', [$this->cron_service, 'handleDailyExport']);
         add_action('mfx_reporting_weekly_export', [$this->cron_service, 'handleWeeklyExport']);
         add_action('mfx_reporting_monthly_export', [$this->cron_service, 'handleMonthlyExport']);
         

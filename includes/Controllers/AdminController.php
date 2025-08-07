@@ -30,6 +30,8 @@ class AdminController {
         add_action('wp_ajax_mfx_reporting_get_spreadsheets', [$this, 'handleGetSpreadsheets']);
         add_action('wp_ajax_mfx_reporting_save_scheduled_reports', [$this, 'handleSaveScheduledReports']);
         add_action('wp_ajax_mfx_reporting_test_daily_export', [$this, 'handleTestDailyExport']);
+        add_action('wp_ajax_mfx_reporting_test_weekly_export', [$this, 'handleTestWeeklyExport']);
+        add_action('wp_ajax_mfx_reporting_test_monthly_export', [$this, 'handleTestMonthlyExport']);
         add_action('admin_init', [$this, 'handleOAuthCallback']);
     }
     
@@ -211,6 +213,66 @@ class AdminController {
             // Use CronService to trigger daily export
             $cron_service = new \MFX_Reporting\Services\CronService();
             $result = $cron_service->triggerDailyExport($date ?: null);
+            
+            wp_send_json_success([
+                'message' => $result['message'],
+                'revenue' => $result['revenue'] ?? 0,
+                'order_count' => $result['order_count'] ?? 0,
+                'sheet_name' => $result['sheet_name'] ?? ''
+            ]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error([
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Handle test weekly export AJAX request
+     */
+    public function handleTestWeeklyExport() {
+        // Verify nonce and capabilities
+        if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        try {
+            $date = sanitize_text_field($_POST['date'] ?? '');
+            
+            // Use CronService to trigger weekly export
+            $cron_service = new \MFX_Reporting\Services\CronService();
+            $result = $cron_service->triggerWeeklyExport($date ?: null);
+            
+            wp_send_json_success([
+                'message' => $result['message'],
+                'revenue' => $result['revenue'] ?? 0,
+                'order_count' => $result['order_count'] ?? 0,
+                'sheet_name' => $result['sheet_name'] ?? ''
+            ]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error([
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Handle test monthly export AJAX request
+     */
+    public function handleTestMonthlyExport() {
+        // Verify nonce and capabilities
+        if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        try {
+            $date = sanitize_text_field($_POST['date'] ?? '');
+            
+            // Use CronService to trigger monthly export
+            $cron_service = new \MFX_Reporting\Services\CronService();
+            $result = $cron_service->triggerMonthlyExport($date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],

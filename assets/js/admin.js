@@ -25,6 +25,18 @@ jQuery(document).ready(function($) {
             testDailyExport();
         });
         
+        // Test weekly export button
+        $('#test-weekly-export-btn').on('click', function(e) {
+            console.log('Test weekly export button clicked!');
+            testWeeklyExport();
+        });
+        
+        // Test monthly export button
+        $('#test-monthly-export-btn').on('click', function(e) {
+            console.log('Test monthly export button clicked!');
+            testMonthlyExport();
+        });
+        
         // Connect to Google Sheets button
         $('#connect-google-sheets').on('click', function() {
             const $button = $(this);
@@ -463,11 +475,12 @@ jQuery(document).ready(function($) {
         });
     }
 
-    function testDailyExport() {
-        console.log('testDailyExport function called');
+
+    function testWeeklyExport() {
+        console.log('testWeeklyExport function called');
         
-        const testBtn = $('#test-daily-export-btn');
-        const dateInput = $('#test-export-date');
+        const testBtn = $('#test-weekly-export-btn');
+        const dateInput = $('#test-weekly-export-date');
         const resultDiv = $('#test-export-result');
         
         console.log('Button:', testBtn);
@@ -484,7 +497,7 @@ jQuery(document).ready(function($) {
             url: mfxReporting.ajaxUrl,
             type: 'POST',
             data: {
-                action: 'mfx_reporting_test_daily_export',
+                action: 'mfx_reporting_test_weekly_export',
                 nonce: mfxReporting.nonce,
                 date: dateInput.val()
             },
@@ -521,7 +534,70 @@ jQuery(document).ready(function($) {
             complete: function() {
                 console.log('AJAX Complete');
                 // Re-enable button
-                testBtn.prop('disabled', false).text('Test Daily Export');
+                testBtn.prop('disabled', false).text('Test Weekly Export');
+            }
+        });
+    }
+
+    function testMonthlyExport() {
+        console.log('testMonthlyExport function called');
+        
+        const testBtn = $('#test-monthly-export-btn');
+        const dateInput = $('#test-monthly-export-date');
+        const resultDiv = $('#test-export-result');
+        
+        console.log('Button:', testBtn);
+        console.log('Date input:', dateInput);
+        console.log('Result div:', resultDiv);
+
+        // Disable button and show loading
+        testBtn.prop('disabled', true).text('Exporting...');
+        resultDiv.hide();
+
+        console.log('Making AJAX request...');
+
+        $.ajax({
+            url: mfxReporting.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'mfx_reporting_test_monthly_export',
+                nonce: mfxReporting.nonce,
+                date: dateInput.val()
+            },
+            success: function(response) {
+                console.log('AJAX Success:', response);
+                if (response.success) {
+                    resultDiv
+                        .removeClass('notice-error')
+                        .addClass('notice-success')
+                        .html(`
+                            <p><strong>Export Successful!</strong></p>
+                            <p>${response.data.message}</p>
+                            ${response.data.revenue ? `<p>Revenue: $${response.data.revenue}</p>` : ''}
+                            ${response.data.order_count ? `<p>Orders: ${response.data.order_count}</p>` : ''}
+                            ${response.data.sheet_name ? `<p>Sheet: ${response.data.sheet_name}</p>` : ''}
+                        `)
+                        .show();
+                } else {
+                    resultDiv
+                        .removeClass('notice-success')
+                        .addClass('notice-error')
+                        .html(`<p><strong>Export Failed:</strong> ${response.data.message}</p>`)
+                        .show();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('AJAX Error:', xhr, status, error);
+                resultDiv
+                    .removeClass('notice-success')
+                    .addClass('notice-error')
+                    .html('<p><strong>Error:</strong> Failed to communicate with server</p>')
+                    .show();
+            },
+            complete: function() {
+                console.log('AJAX Complete');
+                // Re-enable button
+                testBtn.prop('disabled', false).text('Test Monthly Export');
             }
         });
     }

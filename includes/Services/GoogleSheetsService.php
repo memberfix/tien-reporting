@@ -267,15 +267,6 @@ class GoogleSheetsService {
     public function saveScheduledReports($data) {
         $scheduled_reports = [];
         
-        // Process daily reports
-        if (!empty($data['daily_enabled'])) {
-            $scheduled_reports['daily'] = [
-                'enabled' => true,
-                'spreadsheet_id' => sanitize_text_field($data['daily_spreadsheet'] ?? ''),
-                'worksheet_name' => sanitize_text_field($data['daily_worksheet'] ?? 'Daily Reports')
-            ];
-        }
-        
         // Process weekly reports
         if (!empty($data['weekly_enabled'])) {
             $scheduled_reports['weekly'] = [
@@ -431,41 +422,41 @@ class GoogleSheetsService {
     }
     
     /**
-     * Export daily report to Google Sheets
+     * Export comprehensive report to Google Sheets (weekly or monthly)
      */
-    public function exportDailyReport($date = null) {
-        if (!$date) {
+    public function exportComprehensiveReport($period = 'weekly', $date = null) {
+        if (empty($date)) {
             $date = date('Y-m-d', strtotime('-1 day')); // Default to yesterday
         }
         
-        // Check if daily reports are enabled
-        if (!$this->isFrequencyEnabled('daily')) {
-            throw new \Exception('Daily reports are not enabled');
+        // Check if the frequency is enabled
+        if (!$this->isFrequencyEnabled($period)) {
+            throw new \Exception(ucfirst($period) . ' reports are not enabled');
         }
         
-        $spreadsheet_id = $this->getSpreadsheetId('daily');
+        $spreadsheet_id = $this->getSpreadsheetId($period);
         if (!$spreadsheet_id) {
-            throw new \Exception('No spreadsheet configured for daily reports');
+            throw new \Exception("No spreadsheet configured for {$period} reports");
         }
         
-        // Get WooCommerce data
+        // Get comprehensive WooCommerce data
         $wc_service = new WooCommerceDataService();
-        $orders_data = $wc_service->getDailyOrdersData($date);
+        $report_data = $wc_service->getReportData($period, $date);
         
-        if (empty($orders_data['orders'])) {
-            error_log("MFX Reporting: No orders found for date {$date}");
+        if (empty($report_data)) {
+            error_log("MFX Reporting: No data found for {$period} report on {$date}");
             return [
                 'success' => true,
-                'message' => "No orders found for {$date}",
+                'message' => "No data found for {$period} report on {$date}",
                 'revenue' => 0
             ];
         }
         
-        // Format data for Google Sheets
-        $formatted_data = $wc_service->formatForGoogleSheets($orders_data);
+        // Format data for Google Sheets with comprehensive metrics
+        $formatted_data = $wc_service->formatReportForGoogleSheets($report_data);
         
-        // Create sheet name with date
-        $sheet_name = date('Y-m-d', strtotime($date));
+        // Generate appropriate sheet name
+        $sheet_name = $this->generateSheetName($period, $date);
         
         try {
             // Create new sheet
@@ -474,19 +465,37 @@ class GoogleSheetsService {
             // Write data to sheet
             $this->writeToSheet($spreadsheet_id, $sheet_name, $formatted_data);
             
-            error_log("MFX Reporting: Successfully exported daily report for {$date}. Revenue: $" . number_format($orders_data['total_revenue'], 2));
+            error_log("MFX Reporting: Successfully exported {$period} report for {$date}. Net Revenue: $" . number_format($report_data['net_revenue'], 2));
             
             return [
                 'success' => true,
-                'message' => "Daily report exported successfully for {$date}",
-                'revenue' => $orders_data['total_revenue'],
-                'order_count' => $orders_data['order_count'],
+                'message' => ucfirst($period) . " report exported successfully for {$date}",
+                'revenue' => $report_data['net_revenue'],
+                'gross_revenue' => $report_data['gross_revenue'],
+                'new_members' => $report_data['new_members'],
+                'cancellations' => $report_data['cancellations'],
                 'sheet_name' => $sheet_name
             ];
             
         } catch (\Exception $e) {
-            error_log("MFX Reporting: Failed to export daily report for {$date}: " . $e->getMessage());
+            error_log("MFX Reporting: Failed to export {$period} report for {$date}: " . $e->getMessage());
             throw $e;
+        }
+    }
+    
+    /**
+     * Generate sheet name based on period and date
+     */
+    private function generateSheetName($period, $date) {
+        switch ($period) {
+            case 'weekly':
+                $week_start = date('Y-m-d', strtotime($date . ' -6 days'));
+                return "Week {$week_start} to {$date}";
+            case 'monthly':
+                $month_start = date('Y-m-d', strtotime($date . ' -29 days'));
+                return "Month {$month_start} to {$date}";
+            default:
+                return date('Y-m-d', strtotime($date));
         }
     }
 }

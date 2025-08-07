@@ -112,26 +112,6 @@ class AdminView {
                 <form id="scheduled-reports-form">
                     <?php wp_nonce_field('mfx_reporting_nonce', 'mfx_reporting_nonce'); ?>
                     
-                    <!-- Daily Reports -->
-                    <div class="report-frequency">
-                        <h3><?php _e('Daily Reports', 'mfx-reporting'); ?></h3>
-                        <p class="description"><?php _e('Select a spreadsheet for daily WooCommerce reports. A new sheet will be created automatically each day.', 'mfx-reporting'); ?></p>
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="daily_spreadsheet"><?php _e('Spreadsheet', 'mfx-reporting'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="daily_spreadsheet" name="daily_spreadsheet" class="spreadsheet-dropdown" 
-                                        data-current-value="<?php echo esc_attr($scheduled_reports['daily']['spreadsheet_id'] ?? ''); ?>">
-                                        <option value=""><?php _e('Select a spreadsheet...', 'mfx-reporting'); ?></option>
-                                    </select>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-
                     <!-- Weekly Reports -->
                     <div class="report-frequency">
                         <h3><?php _e('Weekly Reports', 'mfx-reporting'); ?></h3>
@@ -172,34 +152,54 @@ class AdminView {
                         </table>
                     </div>
 
-                    <div class="button-group">
+                    <div class="form-group">
                         <button type="button" id="save-scheduled-reports" class="button button-primary">
                             <?php _e('Save Scheduled Reports', 'mfx-reporting'); ?>
                         </button>
-                        <span class="spinner"></span>
                     </div>
                 </form>
             </div>
             <?php endif; ?>
 
-            <!-- Manual Test Daily Export -->
+            <!-- Manual Test Weekly Export -->
             <div class="card">
-                <h2><?php _e('Test Daily Export', 'mfx-reporting'); ?></h2>
+                <h2><?php _e('Test Weekly Export', 'mfx-reporting'); ?></h2>
                 <div class="card-content">
-                    <p><?php _e('Manually trigger a daily export for testing purposes.', 'mfx-reporting'); ?></p>
+                    <p><?php _e('Manually trigger a weekly export with comprehensive metrics (last 7 days) for testing purposes.', 'mfx-reporting'); ?></p>
                     
                     <div class="form-group">
-                        <label for="test-export-date"><?php _e('Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
-                        <input type="date" id="test-export-date" name="test_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                        <label for="test-weekly-export-date"><?php _e('End Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-weekly-export-date" name="test_weekly_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
                     </div>
                     
                     <div class="form-group">
-                        <button type="button" id="test-daily-export-btn" class="button button-secondary">
-                            <?php _e('Test Daily Export', 'mfx-reporting'); ?>
+                        <button type="button" id="test-weekly-export-btn" class="button button-secondary">
+                            <?php _e('Test Weekly Export', 'mfx-reporting'); ?>
                         </button>
                     </div>
                     
-                    <div id="test-export-result" class="notice" style="display: none;"></div>
+                    <div id="test-weekly-export-result" class="notice" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Manual Test Monthly Export -->
+            <div class="card">
+                <h2><?php _e('Test Monthly Export', 'mfx-reporting'); ?></h2>
+                <div class="card-content">
+                    <p><?php _e('Manually trigger a monthly export with comprehensive metrics (last 30 days) for testing purposes.', 'mfx-reporting'); ?></p>
+                    
+                    <div class="form-group">
+                        <label for="test-monthly-export-date"><?php _e('End Date (optional - defaults to yesterday):', 'mfx-reporting'); ?></label>
+                        <input type="date" id="test-monthly-export-date" name="test_monthly_export_date" value="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" id="test-monthly-export-btn" class="button button-secondary">
+                            <?php _e('Test Monthly Export', 'mfx-reporting'); ?>
+                        </button>
+                    </div>
+                    
+                    <div id="test-monthly-export-result" class="notice" style="display: none;"></div>
                 </div>
             </div>
 
