@@ -2,6 +2,8 @@
 
 namespace MFX_Reporting\Services;
 
+use MFX_Reporting\Services\DebugLogger;
+
 /**
  * WooCommerce Data Service
  * Handles fetching and formatting WooCommerce data for reports
@@ -632,12 +634,16 @@ class WooCommerceDataService {
         if (!function_exists('wcs_get_subscriptions')) {
             return [];
         }
+        // DEBUG: Log the date range being requested
+        DebugLogger::log("getDetailedCancellations called", $date_range);
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
+
+        DebugLogger::log("WooCommerce returned " . count($subscriptions) . " cancelled subscriptions");
         
         $detailed_cancellations = [];
         
