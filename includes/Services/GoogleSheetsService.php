@@ -227,17 +227,29 @@ class GoogleSheetsService {
      */
     public function disconnect() {
         try {
-            $access_token = get_option('mfx_google_access_token');
+            $access_token = get_option('mfx_reporting_google_access_token');
+            
+            DebugLogger::log('Disconnect started - Access token exists: ' . ($access_token ? 'Yes' : 'No'));
             
             if ($access_token) {
                 wp_remote_post('https://oauth2.googleapis.com/revoke', [
                     'body' => ['token' => $access_token],
                     'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
                 ]);
+                DebugLogger::log('Google token revoked');
             }
-            delete_option('mfx_google_access_token');
-            delete_option('mfx_google_refresh_token');
-            delete_option('mfx_google_token_expires');
+            
+            delete_option('mfx_reporting_google_access_token');
+            delete_option('mfx_reporting_google_refresh_token');
+            delete_option('mfx_reporting_scheduled_reports');
+            
+            // Verify tokens were deleted
+            $check_access = get_option('mfx_reporting_google_access_token');
+            $check_refresh = get_option('mfx_reporting_google_refresh_token');
+            
+            DebugLogger::log('After delete - Access token still exists: ' . ($check_access ? 'Yes' : 'No'));
+            DebugLogger::log('After delete - Refresh token still exists: ' . ($check_refresh ? 'Yes' : 'No'));
+            DebugLogger::log('Google Sheets disconnected - tokens revoked and settings cleared');
             
             return [
                 'success' => true,
@@ -245,6 +257,7 @@ class GoogleSheetsService {
             ];
             
         } catch (\Exception $e) {
+            DebugLogger::log('Error disconnecting from Google Sheets: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error disconnecting: ' . $e->getMessage()
