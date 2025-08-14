@@ -200,6 +200,7 @@ class AdminController {
     
     /**
      * Handle test daily export AJAX request
+     * Note: Daily exports are handled directly through GoogleSheetsService
      */
     public function handleTestDailyExport() {
         // Verify nonce and capabilities
@@ -210,9 +211,8 @@ class AdminController {
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
             
-            // Use CronService to trigger daily export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerDailyExport($date ?: null);
+            // Use GoogleSheetsService directly for daily export
+            $result = $this->google_sheets_service->exportComprehensiveReport('daily', $date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],
@@ -240,9 +240,9 @@ class AdminController {
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
             
-            // Use CronService to trigger weekly export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerWeeklyExport($date ?: null);
+            // Use ActionSchedulerService to trigger weekly export
+            $action_scheduler_service = new \MFX_Reporting\Services\ActionSchedulerService();
+            $result = $action_scheduler_service->triggerWeeklyExport($date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],
@@ -270,9 +270,9 @@ class AdminController {
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
             
-            // Use CronService to trigger monthly export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerMonthlyExport($date ?: null);
+            // Use ActionSchedulerService to trigger monthly export
+            $action_scheduler_service = new \MFX_Reporting\Services\ActionSchedulerService();
+            $result = $action_scheduler_service->triggerMonthlyExport($date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],

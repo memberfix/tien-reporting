@@ -3,7 +3,7 @@
 namespace MFX_Reporting\Core;
 
 use MFX_Reporting\Controllers\AdminController;
-use MFX_Reporting\Services\CronService;
+use MFX_Reporting\Services\ActionSchedulerService;
 
 /**
  * Main Plugin Class
@@ -23,7 +23,7 @@ class Plugin {
     /**
      * Services
      */
-    private $cron_service;
+    private $action_scheduler_service;
     
     /**
      * Get plugin instance (Singleton)
@@ -50,18 +50,18 @@ class Plugin {
         $this->admin_controller = new AdminController();
         
         // Initialize services
-        $this->cron_service = new CronService();
+        $this->action_scheduler_service = new ActionSchedulerService();
         
         // Hook into WordPress
         add_action('admin_init', [$this, 'registerSettings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
         
-        // Register cron jobs
-        add_action('wp', [$this, 'registerCronJobs']);
+        // Register scheduled actions
+        add_action('init', [$this, 'registerScheduledActions']);
         
-        // Hook cron job handlers
-        add_action('mfx_reporting_weekly_export', [$this->cron_service, 'handleWeeklyExport']);
-        add_action('mfx_reporting_monthly_export', [$this->cron_service, 'handleMonthlyExport']);
+        // Hook action scheduler handlers
+        add_action('mfx_reporting_weekly_export', [$this->action_scheduler_service, 'handleWeeklyExport']);
+        add_action('mfx_reporting_monthly_export', [$this->action_scheduler_service, 'handleMonthlyExport']);
         
         // Register plugin activation/deactivation hooks
         register_activation_hook(MFX_REPORTING_PLUGIN_FILE, [$this, 'onActivation']);
@@ -69,18 +69,18 @@ class Plugin {
     }
     
     /**
-     * Register cron jobs
+     * Register scheduled actions
      */
-    public function registerCronJobs() {
-        $this->cron_service->registerCronJobs();
+    public function registerScheduledActions() {
+        $this->action_scheduler_service->registerScheduledActions();
     }
     
     /**
      * Plugin activation hook
      */
     public function onActivation() {
-        // Register cron jobs on activation
-        $this->cron_service->registerCronJobs();
+        // Register scheduled actions on activation
+        $this->action_scheduler_service->registerScheduledActions();
         
         // Flush rewrite rules if needed
         flush_rewrite_rules();
@@ -90,8 +90,8 @@ class Plugin {
      * Plugin deactivation hook
      */
     public function onDeactivation() {
-        // Clear cron jobs on deactivation
-        $this->cron_service->unregisterCronJobs();
+        // Clear scheduled actions on deactivation
+        $this->action_scheduler_service->unregisterScheduledActions();
         
         // Flush rewrite rules
         flush_rewrite_rules();
