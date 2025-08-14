@@ -652,10 +652,21 @@ class WooCommerceDataService {
                 continue;
             }
             
-            // Calculate days active
+            // DEBUG: Log each subscription's details
+            $sub_id = $subscription->get_id();
             $date_created = $subscription->get_date_created();
-            $date_cancelled = $subscription->get_date_modified();
-            $days_active = $date_created->diff($date_cancelled)->days;
+            $date_modified = $subscription->get_date_modified();
+            $date_cancelled = $subscription->get_date('cancelled'); // Get actual cancellation date
+            
+            DebugLogger::log("Processing subscription $sub_id", [
+                'created' => $date_created ? $date_created->date('Y-m-d H:i:s') : 'N/A',
+                'modified' => $date_modified ? $date_modified->date('Y-m-d H:i:s') : 'N/A', 
+                'cancelled' => $date_cancelled ? $date_cancelled->date('Y-m-d H:i:s') : 'N/A',
+                'status' => $subscription->get_status()
+            ]);
+            
+            // Calculate days active
+            $days_active = $date_created->diff($date_modified)->days;
             
             // Get subscription value
             $subscription_value = $subscription->get_total();
