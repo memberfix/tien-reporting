@@ -11,9 +11,9 @@ class DebugLogger {
      * Initialize the logger
      */
     public static function init() {
-        // Create logs directory if it doesn't exist
-        $upload_dir = wp_upload_dir();
-        $log_dir = $upload_dir['basedir'] . '/mfx-reporting-logs/';
+        // Create logs directory inside the plugin directory
+        $plugin_dir = dirname(dirname(dirname(__FILE__))); // Go up to plugin root
+        $log_dir = $plugin_dir . '/logs/';
         
         if (!file_exists($log_dir)) {
             wp_mkdir_p($log_dir);
