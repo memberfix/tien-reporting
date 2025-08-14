@@ -42,7 +42,7 @@ class WooCommerceDataService {
             'trials_started' => $this->getTrialsStarted($date_range),
             'new_members' => $this->getNewMembers($date_range),
             'cancellations' => $this->getCancellations($date_range),
-            'net_paid_subscriber_growth' => 0,             'rolling_ltv' => $this->getRollingLTV(),
+            'net_paid_subscriber_growth' => 0,             'rolling_ltv' => $this->getRollingLTV($date_range),
             'detailed_orders' => $this->getDetailedOrders($date_range),
             'detailed_cancellations' => $this->getDetailedCancellations($date_range)
         ];
@@ -298,14 +298,14 @@ class WooCommerceDataService {
     }
     
     /**
-     * Get Rolling LTV: Average tenure of subscriber in months * subscription price per month
+     * Get Rolling LTV: Total revenue from active customers divided by number of active customers in date range
      */
-    private function getRollingLTV() {
-                if (!function_exists('wcs_get_subscriptions')) {
+    private function getRollingLTV($date_range) {
+        if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
-                $subscriptions = wcs_get_subscriptions([
+        $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'cancelled', 'expired'],
             'limit' => -1
         ]);
@@ -314,32 +314,70 @@ class WooCommerceDataService {
             return 0;
         }
         
-        $total_tenure_months = 0;
-        $total_monthly_revenue = 0;
-        $subscription_count = 0;
+        $start_timestamp = strtotime($date_range['start']);
+        $end_timestamp = strtotime($date_range['end']);
+        
+        $total_revenue = 0;
+        $active_customers = [];
         
         foreach ($subscriptions as $subscription) {
-            $start_date = $subscription->get_date_created();
-            $end_date = $subscription->get_status() === 'active' ? current_time('timestamp') : $subscription->get_date_modified();
+            if (!$subscription instanceof \WC_Subscription) {
+                continue;
+            }
             
-            if ($start_date && $end_date) {
-                $tenure_months = (strtotime($end_date) - strtotime($start_date)) / (30 * 24 * 60 * 60);                 $total_tenure_months += $tenure_months;
+            $date_created = $subscription->get_date_created();
+            if (!$date_created) {
+                continue;
+            }
+            
+            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
+                ? $date_created->getTimestamp() 
+                : strtotime($date_created);
+            
+            // Check if subscription was active during the date range
+            $subscription_active_in_range = false;
+            
+            // If subscription started before or during the range
+            if ($created_timestamp <= $end_timestamp) {
+                $status = $subscription->get_status();
                 
-                                $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
-                $total_monthly_revenue += $monthly_price;
+                if ($status === 'active') {
+                    // Active subscription - check if it started before range end
+                    $subscription_active_in_range = true;
+                } else {
+                    // Cancelled/expired - check if it was cancelled after range start
+                    $date_cancelled = $subscription->get_date('cancelled');
+                    if ($date_cancelled) {
+                        $cancel_timestamp = is_object($date_cancelled) && method_exists($date_cancelled, 'getTimestamp') 
+                            ? $date_cancelled->getTimestamp() 
+                            : strtotime($date_cancelled);
+                        
+                        if ($cancel_timestamp >= $start_timestamp) {
+                            $subscription_active_in_range = true;
+                        }
+                    }
+                }
+            }
+            
+            if ($subscription_active_in_range) {
+                $customer_id = $subscription->get_customer_id();
+                if ($customer_id) {
+                    $active_customers[$customer_id] = true;
+                }
                 
-                $subscription_count++;
+                // Calculate revenue for this subscription in the period
+                $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
+                $total_revenue += $monthly_price;
             }
         }
         
-        if ($subscription_count === 0) {
+        $customer_count = count($active_customers);
+        
+        if ($customer_count === 0) {
             return 0;
         }
         
-        $average_tenure = $total_tenure_months / $subscription_count;
-        $average_monthly_price = $total_monthly_revenue / $subscription_count;
-        
-        return $average_tenure * $average_monthly_price;
+        return round($total_revenue / $customer_count, 2);
     }
     
     /**
@@ -506,7 +544,7 @@ class WooCommerceDataService {
             'Rolling LTV',
             '$' . number_format($report_data['rolling_ltv'], 2),
             'USD',
-            'Average tenure (months) × subscription price per month'
+            'Average revenue per active customer'
         ];
         
                 $formatted_data[] = [];
