@@ -92,28 +92,14 @@ class WooCommerceDataService {
     private function getGrossRevenue($date_range) {
         $orders = wc_get_orders([
             'status' => ['completed', 'processing', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $gross_revenue = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($orders as $order) {
             if (!$order instanceof \WC_Order) {
-                continue;
-            }
-            
-            $date_created = $order->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
                 continue;
             }
             
@@ -130,28 +116,14 @@ class WooCommerceDataService {
     private function getDiscountsGiven($date_range) {
         $orders = wc_get_orders([
             'status' => ['completed', 'processing', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $total_discounts = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($orders as $order) {
             if (!$order instanceof \WC_Order) {
-                continue;
-            }
-            
-            $date_created = $order->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
                 continue;
             }
             
