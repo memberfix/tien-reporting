@@ -634,16 +634,12 @@ class WooCommerceDataService {
         if (!function_exists('wcs_get_subscriptions')) {
             return [];
         }
-        // DEBUG: Log the date range being requested
-        DebugLogger::log("getDetailedCancellations called", $date_range);
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
-
-        DebugLogger::log("WooCommerce returned " . count($subscriptions) . " cancelled subscriptions");
         
         $detailed_cancellations = [];
         
@@ -652,32 +648,15 @@ class WooCommerceDataService {
                 continue;
             }
             
-            // DEBUG: Log each subscription's details
-            $sub_id = $subscription->get_id();
+            // Get actual cancellation date (not modification date)
             $date_created = $subscription->get_date_created();
             $date_modified = $subscription->get_date_modified();
-            $date_cancelled = $subscription->get_date('cancelled'); // Get actual cancellation date
-            
-            // Helper function to safely format dates
-            $format_date = function($date) {
-                if (!$date) return 'N/A';
-                if (is_string($date)) return $date;
-                if (is_object($date) && method_exists($date, 'date')) return $date->date('Y-m-d H:i:s');
-                return 'Unknown format';
-            };
-            
-            DebugLogger::log("Processing subscription $sub_id", [
-                'created' => $format_date($date_created),
-                'modified' => $format_date($date_modified), 
-                'cancelled' => $format_date($date_cancelled),
-                'status' => $subscription->get_status()
-            ]);
+            $date_cancelled = $subscription->get_date('cancelled');
             
             // Use actual cancellation date for filtering (not modification date)
             $effective_cancel_date = $date_cancelled ?: $date_modified;
             
             if (!$effective_cancel_date) {
-                DebugLogger::log("Skipping subscription $sub_id - no cancellation date");
                 continue;
             }
             
@@ -691,14 +670,19 @@ class WooCommerceDataService {
             
             // Only include if cancellation date is within the specified range
             if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
-                DebugLogger::log("Excluding subscription $sub_id - cancellation date outside range");
                 continue;
             }
             
-            DebugLogger::log("Including subscription $sub_id - cancellation date within range");
+            // Helper function to safely format dates
+            $format_date = function($date) {
+                if (!$date) return 'N/A';
+                if (is_string($date)) return $date;
+                if (is_object($date) && method_exists($date, 'date')) return $date->date('Y-m-d H:i:s');
+                return 'Unknown format';
+            };
             
             // Calculate days active
-            $days_active = $date_created->diff($date_modified)->days;
+            $days_active = $date_created->diff($effective_cancel_date)->days;
             
             // Get subscription value
             $subscription_value = $subscription->get_total();
