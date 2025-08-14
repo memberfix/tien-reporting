@@ -1,6 +1,4 @@
 jQuery(document).ready(function($) {
-    
-    // Initialize
     init();
     
     function init() {
@@ -11,7 +9,6 @@ jQuery(document).ready(function($) {
     }
     
     function bindEvents() {
-        // Setup help toggle
         $('.setup-help-toggle').on('click', function(e) {
             e.preventDefault();
             $(this).siblings('.setup-help-content').slideToggle();
@@ -24,20 +21,14 @@ jQuery(document).ready(function($) {
             console.log('Test daily export button clicked!');
             testDailyExport();
         });
-        
-        // Test weekly export button
         $('#test-weekly-export-btn').on('click', function(e) {
             console.log('Test weekly export button clicked!');
             testWeeklyExport();
         });
-        
-        // Test monthly export button
         $('#test-monthly-export-btn').on('click', function(e) {
             console.log('Test monthly export button clicked!');
             testMonthlyExport();
         });
-        
-        // Connect to Google Sheets button
         $('#connect-google-sheets').on('click', function() {
             const $button = $(this);
             const $spinner = $button.siblings('.spinner');
@@ -54,14 +45,11 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        // Open popup for OAuth
                         const popup = window.open(
                             response.data.auth_url,
                             'google_oauth',
                             'width=500,height=600,scrollbars=yes,resizable=yes'
                         );
-                        
-                        // Listen for popup messages
                         const messageListener = function(event) {
                             if (event.origin !== window.location.origin) return;
                             
@@ -78,8 +66,6 @@ jQuery(document).ready(function($) {
                         };
                         
                         window.addEventListener('message', messageListener);
-                        
-                        // Check if popup was closed manually
                         const checkClosed = setInterval(() => {
                             if (popup.closed) {
                                 clearInterval(checkClosed);
@@ -100,8 +86,6 @@ jQuery(document).ready(function($) {
                 }
             });
         });
-        
-        // Test connection button
         $('#test-google-connection').on('click', function() {
             const $button = $(this);
             const $spinner = $button.siblings('.spinner');
@@ -159,10 +143,8 @@ jQuery(document).ready(function($) {
                 }
             });
         });
-        
-        // Disconnect button
         $('#disconnect-google').on('click', function() {
-            if (!confirm('Are you sure you want to disconnect from Google Sheets?')) {
+            if (!confirm('Are you sure you want to disconnect from Google Sheets? This will remove all scheduled reports settings.')) {
                 return;
             }
             
@@ -181,13 +163,14 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        showMessage('Successfully disconnected from Google Sheets.', 'success');
+                        showMessage('Successfully disconnected from Google Sheets!', 'success');
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         showMessage('Disconnect failed: ' + response.data.message, 'error');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.log('Disconnect AJAX Error:', xhr, status, error);
                     showMessage('Disconnect failed. Please try again.', 'error');
                 },
                 complete: function() {
@@ -196,8 +179,6 @@ jQuery(document).ready(function($) {
                 }
             });
         });
-        
-        // Save scheduled reports
         $('#save-scheduled-reports').on('click', function() {
             const $button = $(this);
             const $spinner = $button.siblings('.spinner');
@@ -205,8 +186,6 @@ jQuery(document).ready(function($) {
             
             $button.prop('disabled', true);
             $spinner.addClass('is-active');
-            
-            // Get form data
             const formData = {
                 action: 'mfx_save_scheduled_reports',
                 nonce: mfxReporting.nonce,
@@ -214,8 +193,6 @@ jQuery(document).ready(function($) {
                 weekly_spreadsheet: $('#weekly_spreadsheet').val(),
                 monthly_spreadsheet: $('#monthly_spreadsheet').val()
             };
-            
-            // Only include enabled reports (those with selected spreadsheets)
             if (formData.daily_spreadsheet) {
                 formData.daily_enabled = '1';
             }
@@ -233,7 +210,6 @@ jQuery(document).ready(function($) {
                 success: function(response) {
                     if (response.success) {
                         showMessage('Scheduled reports settings saved successfully!', 'success');
-                        // Reload page to show saved values
                         setTimeout(function() {
                             window.location.reload();
                         }, 1500);
@@ -250,15 +226,12 @@ jQuery(document).ready(function($) {
                 }
             });
         });      
-        // Initialize any other functionality here if needed
     }
 
     function setupMessageListener() {
-        // Listen for messages from OAuth popup
         window.addEventListener('message', function(event) {
             if (event.data.type === 'oauth_success') {
                 showMessage(mfxReporting.strings.connected, 'success');
-                // Reload page to show connected state
                 setTimeout(function() {
                     window.location.reload();
                 }, 1500);
@@ -282,7 +255,6 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success && response.data) {
-                    // Check if data has spreadsheets array (from getSpreadsheets method)
                     const spreadsheets = response.data.spreadsheets || response.data;
                     populateSpreadsheetDropdowns(spreadsheets);
                 } else {
@@ -297,11 +269,7 @@ jQuery(document).ready(function($) {
         $('.spreadsheet-dropdown').each(function() {
             const $select = $(this);
             const currentValue = $select.data('current-value') || '';
-
-            // Clear existing options except the first one
             $select.find('option:not(:first)').remove();
-
-            // Add spreadsheet options
             spreadsheets.forEach(function(sheet) {
                 const $option = $('<option></option>')
                     .attr('value', sheet.id)
@@ -317,7 +285,6 @@ jQuery(document).ready(function($) {
     }
 
     function initializeReportConfigs() {
-        // Initialize any other functionality here if needed
     }
 
     function connectToGoogleSheets() {
@@ -327,8 +294,6 @@ jQuery(document).ready(function($) {
         $button.prop('disabled', true);
         $spinner.addClass('is-active');
         showMessage(mfxReporting.strings.openingPopup, 'info');
-
-        // Get OAuth URL from server
         $.ajax({
             url: mfxReporting.ajaxUrl,
             type: 'POST',
@@ -338,7 +303,6 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    // Open OAuth popup
                     const popup = window.open(
                         response.data.auth_url,
                         'google_oauth',
@@ -351,8 +315,6 @@ jQuery(document).ready(function($) {
                         $spinner.removeClass('is-active');
                         return;
                     }
-
-                    // Check if popup is closed manually
                     const checkClosed = setInterval(function() {
                         if (popup.closed) {
                             clearInterval(checkClosed);
@@ -457,7 +419,6 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response.success) {
                     showMessage(response.data.message, 'success');
-                    // Reload page to show disconnected state
                     setTimeout(function() {
                         window.location.reload();
                     }, 1500);
@@ -486,8 +447,6 @@ jQuery(document).ready(function($) {
         console.log('Button:', testBtn);
         console.log('Date input:', dateInput);
         console.log('Result div:', resultDiv);
-
-        // Disable button and show loading
         testBtn.prop('disabled', true).text('Exporting...');
         resultDiv.hide();
 
@@ -533,7 +492,6 @@ jQuery(document).ready(function($) {
             },
             complete: function() {
                 console.log('AJAX Complete');
-                // Re-enable button
                 testBtn.prop('disabled', false).text('Test Weekly Export');
             }
         });
@@ -549,8 +507,6 @@ jQuery(document).ready(function($) {
         console.log('Button:', testBtn);
         console.log('Date input:', dateInput);
         console.log('Result div:', resultDiv);
-
-        // Disable button and show loading
         testBtn.prop('disabled', true).text('Exporting...');
         resultDiv.hide();
 
@@ -596,7 +552,6 @@ jQuery(document).ready(function($) {
             },
             complete: function() {
                 console.log('AJAX Complete');
-                // Re-enable button
                 testBtn.prop('disabled', false).text('Test Monthly Export');
             }
         });
@@ -605,18 +560,10 @@ jQuery(document).ready(function($) {
     function showMessage(message, type) {
         const $messages = $('#connection-messages');
         const $messageText = $('#connection-message-text');
-
-        // Remove existing classes
         $messages.removeClass('notice-success notice-error notice-info notice-warning');
-
-        // Add appropriate class
         $messages.addClass('notice-' + type);
-
-        // Set message and show
         $messageText.text(message);
         $messages.slideDown();
-
-        // Auto-hide success messages after 5 seconds
         if (type === 'success') {
             setTimeout(function() {
                 $messages.slideUp();
@@ -627,8 +574,6 @@ jQuery(document).ready(function($) {
     function hideMessage() {
         $('#connection-messages').slideUp();
     }
-
-    // Spinner styles
     $('.spinner').css({
         'float': 'none',
         'margin-left': '10px',

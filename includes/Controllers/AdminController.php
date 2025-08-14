@@ -36,7 +36,8 @@ class AdminController {
     }
     
     /**
-     * Add admin menu
+     * Add admin menu page for MFX Reporting in WordPress admin
+     * Creates top-level menu with chart icon and manage_options capability
      */
     public function addAdminMenu() {
         add_menu_page(
@@ -76,7 +77,6 @@ class AdminController {
         try {
             $this->google_sheets_service->exchangeCodeForToken($_GET['code'], $_GET['state']);
             
-            // Redirect to close popup and refresh parent
             echo '<script>
                 if (window.opener) {
                     window.opener.postMessage({type: "oauth_success"}, "*");
@@ -138,7 +138,7 @@ class AdminController {
     }
     
     /**
-     * AJAX: Disconnect from Google
+     * AJAX: Disconnect from Google Sheets
      */
     public function handleDisconnect() {
         check_ajax_referer('mfx_reporting_nonce', 'nonce');
@@ -200,19 +200,16 @@ class AdminController {
     
     /**
      * Handle test daily export AJAX request
+     * Note: Daily exports are handled directly through GoogleSheetsService
      */
     public function handleTestDailyExport() {
-        // Verify nonce and capabilities
         if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
         
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
-            
-            // Use CronService to trigger daily export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerDailyExport($date ?: null);
+            $result = $this->google_sheets_service->exportComprehensiveReport('daily', $date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],
@@ -232,17 +229,14 @@ class AdminController {
      * Handle test weekly export AJAX request
      */
     public function handleTestWeeklyExport() {
-        // Verify nonce and capabilities
         if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
         
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
-            
-            // Use CronService to trigger weekly export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerWeeklyExport($date ?: null);
+            $action_scheduler_service = new \MFX_Reporting\Services\ActionSchedulerService();
+            $result = $action_scheduler_service->triggerWeeklyExport($date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],
@@ -262,17 +256,14 @@ class AdminController {
      * Handle test monthly export AJAX request
      */
     public function handleTestMonthlyExport() {
-        // Verify nonce and capabilities
         if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
         
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
-            
-            // Use CronService to trigger monthly export
-            $cron_service = new \MFX_Reporting\Services\CronService();
-            $result = $cron_service->triggerMonthlyExport($date ?: null);
+            $action_scheduler_service = new \MFX_Reporting\Services\ActionSchedulerService();
+            $result = $action_scheduler_service->triggerMonthlyExport($date ?: null);
             
             wp_send_json_success([
                 'message' => $result['message'],

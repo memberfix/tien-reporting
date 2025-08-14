@@ -12,7 +12,6 @@ class GoogleSheetsService {
     private $redirect_uri;
     
     public function __construct() {
-        // These should be set in WordPress admin or wp-config.php
         $this->client_id = MFX_GOOGLE_CLIENT_ID;
         $this->client_secret = MFX_GOOGLE_CLIENT_SECRET;
         $this->redirect_uri = admin_url('admin.php?page=mfx-reporting&action=oauth_callback');
@@ -22,8 +21,6 @@ class GoogleSheetsService {
      * Get Google OAuth2 authorization URL
      */
     public function getAuthUrl() {
-        error_log("client_id: " . $this->client_id);
-        error_log("client_secret: " . $this->client_secret);
         $params = [
             'client_id' => $this->client_id,
             'redirect_uri' => $this->redirect_uri,
@@ -41,7 +38,6 @@ class GoogleSheetsService {
      * Exchange authorization code for access token
      */
     public function exchangeCodeForToken($code, $state) {
-        // Verify state parameter
         if (!wp_verify_nonce($state, 'mfx_google_oauth')) {
             throw new \Exception('Invalid state parameter');
         }
@@ -69,8 +65,6 @@ class GoogleSheetsService {
         if (isset($data['error'])) {
             throw new \Exception('OAuth error: ' . $data['error_description']);
         }
-        
-        // Store tokens
         update_option('mfx_reporting_google_access_token', $data['access_token']);
         if (isset($data['refresh_token'])) {
             update_option('mfx_reporting_google_refresh_token', $data['refresh_token']);
@@ -86,8 +80,6 @@ class GoogleSheetsService {
     private function getAccessToken() {
         $access_token = get_option('mfx_reporting_google_access_token');
         $expires_at = get_option('mfx_reporting_google_token_expires', 0);
-        
-        // Check if token needs refresh
         if (time() >= $expires_at - 300) { // Refresh 5 minutes before expiry
             $this->refreshAccessToken();
             $access_token = get_option('mfx_reporting_google_access_token');
@@ -233,20 +225,29 @@ class GoogleSheetsService {
      */
     public function disconnect() {
         try {
-            $access_token = get_option('mfx_google_access_token');
+            $access_token = get_option('mfx_reporting_google_access_token');
+            
+            DebugLogger::log('Disconnect started - Access token exists: ' . ($access_token ? 'Yes' : 'No'));
             
             if ($access_token) {
-                // Revoke the token
                 wp_remote_post('https://oauth2.googleapis.com/revoke', [
                     'body' => ['token' => $access_token],
                     'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
                 ]);
+                DebugLogger::log('Google token revoked');
             }
             
-            // Clear stored tokens
-            delete_option('mfx_google_access_token');
-            delete_option('mfx_google_refresh_token');
-            delete_option('mfx_google_token_expires');
+            delete_option('mfx_reporting_google_access_token');
+            delete_option('mfx_reporting_google_refresh_token');
+            delete_option('mfx_reporting_scheduled_reports');
+            
+            // Verify tokens were deleted
+            $check_access = get_option('mfx_reporting_google_access_token');
+            $check_refresh = get_option('mfx_reporting_google_refresh_token');
+            
+            DebugLogger::log('After delete - Access token still exists: ' . ($check_access ? 'Yes' : 'No'));
+            DebugLogger::log('After delete - Refresh token still exists: ' . ($check_refresh ? 'Yes' : 'No'));
+            DebugLogger::log('Google Sheets disconnected - tokens revoked and settings cleared');
             
             return [
                 'success' => true,
@@ -254,6 +255,7 @@ class GoogleSheetsService {
             ];
             
         } catch (\Exception $e) {
+            DebugLogger::log('Error disconnecting from Google Sheets: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error disconnecting: ' . $e->getMessage()
@@ -266,8 +268,6 @@ class GoogleSheetsService {
      */
     public function saveScheduledReports($data) {
         $scheduled_reports = [];
-        
-        // Process weekly reports
         if (!empty($data['weekly_enabled'])) {
             $scheduled_reports['weekly'] = [
                 'enabled' => true,
@@ -275,8 +275,6 @@ class GoogleSheetsService {
                 'worksheet_name' => sanitize_text_field($data['weekly_worksheet'] ?? 'Weekly Reports')
             ];
         }
-        
-        // Process monthly reports
         if (!empty($data['monthly_enabled'])) {
             $scheduled_reports['monthly'] = [
                 'enabled' => true,
@@ -284,8 +282,6 @@ class GoogleSheetsService {
                 'worksheet_name' => sanitize_text_field($data['monthly_worksheet'] ?? 'Monthly Reports')
             ];
         }
-        
-        // Save to WordPress options
         update_option('mfx_reporting_scheduled_reports', $scheduled_reports);
         
         return [
@@ -428,8 +424,6 @@ class GoogleSheetsService {
         if (empty($date)) {
             $date = date('Y-m-d', strtotime('-1 day')); // Default to yesterday
         }
-        
-        // Check if the frequency is enabled
         if (!$this->isFrequencyEnabled($period)) {
             throw new \Exception(ucfirst($period) . ' reports are not enabled');
         }
@@ -438,8 +432,6 @@ class GoogleSheetsService {
         if (!$spreadsheet_id) {
             throw new \Exception("No spreadsheet configured for {$period} reports");
         }
-        
-        // Get comprehensive WooCommerce data
         $wc_service = new WooCommerceDataService();
         $report_data = $wc_service->getReportData($period, $date);
         
@@ -451,18 +443,11 @@ class GoogleSheetsService {
                 'revenue' => 0
             ];
         }
-        
-        // Format data for Google Sheets with comprehensive metrics
         $formatted_data = $wc_service->formatReportForGoogleSheets($report_data);
-        
-        // Generate appropriate sheet name
         $sheet_name = $this->generateSheetName($period, $date);
         
         try {
-            // Create new sheet
             $this->createSheet($spreadsheet_id, $sheet_name);
-            
-            // Write data to sheet
             $this->writeToSheet($spreadsheet_id, $sheet_name, $formatted_data);
             
             error_log("MFX Reporting: Successfully exported {$period} report for {$date}. Net Revenue: $" . number_format($report_data['net_revenue'], 2));

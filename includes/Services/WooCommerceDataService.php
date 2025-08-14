@@ -25,16 +25,13 @@ class WooCommerceDataService {
             $date = $this->getYesterdayDate();
         }
         
-        // Ensure we have WooCommerce
-        if (!function_exists('wc_get_orders')) {
+                if (!function_exists('wc_get_orders')) {
             throw new \Exception('WooCommerce is not active');
         }
         
-        // Calculate date range based on period
-        $date_range = $this->getDateRange($period, $date);
+                $date_range = $this->getDateRange($period, $date);
         
-        // Get all the metrics
-        $metrics = [
+                $metrics = [
             'period' => $period,
             'date' => $date,
             'date_range' => $date_range,
@@ -45,14 +42,12 @@ class WooCommerceDataService {
             'trials_started' => $this->getTrialsStarted($date_range),
             'new_members' => $this->getNewMembers($date_range),
             'cancellations' => $this->getCancellations($date_range),
-            'net_paid_subscriber_growth' => 0, // Calculated below
-            'rolling_ltv' => $this->getRollingLTV(),
+            'net_paid_subscriber_growth' => 0,             'rolling_ltv' => $this->getRollingLTV(),
             'detailed_orders' => $this->getDetailedOrders($date_range),
             'detailed_cancellations' => $this->getDetailedCancellations($date_range)
         ];
         
-        // Calculate net paid subscriber growth
-        $metrics['net_paid_subscriber_growth'] = $metrics['new_members'] - $metrics['cancellations'];
+                $metrics['net_paid_subscriber_growth'] = $metrics['new_members'] - $metrics['cancellations'];
         
         return $metrics;
     }
@@ -108,8 +103,7 @@ class WooCommerceDataService {
                 continue;
             }
             
-            // Get subtotal (excluding shipping and taxes)
-            $subtotal = $order->get_subtotal();
+                        $subtotal = $order->get_subtotal();
             $gross_revenue += $subtotal;
         }
         
@@ -166,20 +160,37 @@ class WooCommerceDataService {
      * Get number of free trial subscriptions started
      */
     private function getTrialsStarted($date_range) {
-        // Check if WooCommerce Subscriptions is active
         if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'pending', 'cancelled', 'on-hold'],
-            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $trial_count = 0;
+        $start_timestamp = strtotime($date_range['start']);
+        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
+            if (!$subscription instanceof \WC_Subscription) {
+                continue;
+            }
+            
+            $date_created = $subscription->get_date_created();
+            if (!$date_created) {
+                continue;
+            }
+            
+            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
+                ? $date_created->getTimestamp() 
+                : strtotime($date_created);
+                
+            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
+                continue;
+            }
+            
             if ($this->subscriptionHasTrial($subscription)) {
                 $trial_count++;
             }
@@ -189,25 +200,41 @@ class WooCommerceDataService {
     }
     
     /**
-     * Get number of new PAID subscribers (not including free trial people)
+     * Get number of new paid subscriptions (excludes free trials)
      */
     private function getNewMembers($date_range) {
-        // Check if WooCommerce Subscriptions is active
         if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
         $subscriptions = wcs_get_subscriptions([
-            'subscription_status' => ['active', 'pending'],
-            'date_created' => $date_range['start'] . '...' . $date_range['end'],
+            'subscription_status' => ['active', 'on-hold', 'pending-cancel', 'cancelled', 'expired'],
             'limit' => -1
         ]);
         
         $new_members = 0;
+        $start_timestamp = strtotime($date_range['start']);
+        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
-            // Only count as new member if it's not a trial or if trial period has ended
-            if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
+            if (!$subscription instanceof \WC_Subscription) {
+                continue;
+            }
+            
+            $date_created = $subscription->get_date_created();
+            if (!$date_created) {
+                continue;
+            }
+            
+            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
+                ? $date_created->getTimestamp() 
+                : strtotime($date_created);
+                
+            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
+                continue;
+            }
+            
+            if ($subscription->get_total() > 0) {
                 $new_members++;
             }
         }
@@ -219,22 +246,36 @@ class WooCommerceDataService {
      * Get number of subscription cancellations (people who canceled, not expired)
      */
     private function getCancellations($date_range) {
-        // Check if WooCommerce Subscriptions is active
         if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
-            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $cancellations = 0;
+        $start_timestamp = strtotime($date_range['start']);
+        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
-            // Check if it was cancelled (not expired)
-            if ($subscription->get_status() === 'cancelled') {
+            if ($subscription->get_status() !== 'cancelled') {
+                continue;
+            }
+            
+            $date_cancelled = $subscription->get_date('cancelled');
+            $effective_cancel_date = $date_cancelled ?: $subscription->get_date_modified();
+            
+            if (!$effective_cancel_date) {
+                continue;
+            }
+            
+            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
+                ? $effective_cancel_date->getTimestamp() 
+                : strtotime($effective_cancel_date);
+                
+            if ($cancel_timestamp >= $start_timestamp && $cancel_timestamp <= $end_timestamp) {
                 $cancellations++;
             }
         }
@@ -246,13 +287,11 @@ class WooCommerceDataService {
      * Get Rolling LTV: Average tenure of subscriber in months * subscription price per month
      */
     private function getRollingLTV() {
-        // Check if WooCommerce Subscriptions is active
-        if (!function_exists('wcs_get_subscriptions')) {
+                if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
-        // Get all subscriptions (active and cancelled) to calculate average tenure
-        $subscriptions = wcs_get_subscriptions([
+                $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'cancelled', 'expired'],
             'limit' => -1
         ]);
@@ -270,11 +309,9 @@ class WooCommerceDataService {
             $end_date = $subscription->get_status() === 'active' ? current_time('timestamp') : $subscription->get_date_modified();
             
             if ($start_date && $end_date) {
-                $tenure_months = (strtotime($end_date) - strtotime($start_date)) / (30 * 24 * 60 * 60); // Approximate months
-                $total_tenure_months += $tenure_months;
+                $tenure_months = (strtotime($end_date) - strtotime($start_date)) / (30 * 24 * 60 * 60);                 $total_tenure_months += $tenure_months;
                 
-                // Get monthly subscription price
-                $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
+                                $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
                 $total_monthly_revenue += $monthly_price;
                 
                 $subscription_count++;
@@ -299,33 +336,28 @@ class WooCommerceDataService {
         $period = $subscription->get_billing_period();
         $interval = $subscription->get_billing_interval();
         
-        // Convert to monthly price
-        switch ($period) {
+                switch ($period) {
             case 'day':
                 return $total * (30 / $interval);
             case 'week':
-                return $total * (4.33 / $interval); // 4.33 weeks per month
-            case 'month':
+                return $total * (4.33 / $interval);             case 'month':
                 return $total / $interval;
             case 'year':
                 return ($total / $interval) / 12;
             default:
-                return $total; // Default to actual price
-        }
+                return $total;         }
     }
     
     /**
      * Check if a subscription has a trial period
      */
     private function subscriptionHasTrial($subscription) {
-        // Get the subscription's products to check for trial
-        $subscription_items = $subscription->get_items();
+                $subscription_items = $subscription->get_items();
         
         foreach ($subscription_items as $item) {
             $product_id = $item->get_product_id();
             
-            // Check if this product has a trial period using the correct API
-            if (class_exists('\WC_Subscriptions_Product') && \WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
+                        if (class_exists('\WC_Subscriptions_Product') && \WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
                 return true;
             }
         }
@@ -337,21 +369,17 @@ class WooCommerceDataService {
      * Check if a subscription's trial period has ended
      */
     private function subscriptionTrialHasEnded($subscription) {
-        // Get trial end date using the correct method
-        if (method_exists($subscription, 'get_time')) {
+                if (method_exists($subscription, 'get_time')) {
             $trial_end = $subscription->get_time('trial_end');
             if ($trial_end && $trial_end < time()) {
                 return true;
             }
         }
         
-        // Alternative method: check if subscription has moved past trial
-        if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
-            // If it's active and has trial products, trial likely ended
-            $has_trial = $this->subscriptionHasTrial($subscription);
+                if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
+                        $has_trial = $this->subscriptionHasTrial($subscription);
             if ($has_trial) {
-                // Check if subscription has been active for more than trial period
-                $date_created = $subscription->get_date_created();
+                                $date_created = $subscription->get_date_created();
                 $subscription_items = $subscription->get_items();
                 
                 foreach ($subscription_items as $item) {
@@ -381,16 +409,11 @@ class WooCommerceDataService {
     private function getPeriodInSeconds($period) {
         switch ($period) {
             case 'day':
-                return 86400; // 24 * 60 * 60
-            case 'week':
-                return 604800; // 7 * 24 * 60 * 60
-            case 'month':
-                return 2592000; // 30 * 24 * 60 * 60
-            case 'year':
-                return 31536000; // 365 * 24 * 60 * 60
-            default:
-                return 86400; // Default to day
-        }
+                return 86400;             case 'week':
+                return 604800;             case 'month':
+                return 2592000;             case 'year':
+                return 31536000;             default:
+                return 86400;         }
     }
     
     /**
@@ -399,18 +422,15 @@ class WooCommerceDataService {
     public function formatReportForGoogleSheets($report_data) {
         $formatted_data = [];
         
-        // Add report header
-        $formatted_data[] = [
+                $formatted_data[] = [
             ucfirst($report_data['period']) . ' Report - ' . $report_data['date'],
             '',
             '',
             ''
         ];
         
-        $formatted_data[] = []; // Empty row
-        
-        // Add metrics summary
-        $formatted_data[] = ['Metric', 'Value', 'Currency', 'Notes'];
+        $formatted_data[] = [];         
+                $formatted_data[] = ['Metric', 'Value', 'Currency', 'Notes'];
         
         $formatted_data[] = [
             'Net Revenue (' . $report_data['period'] . ')',
@@ -475,14 +495,11 @@ class WooCommerceDataService {
             'Average tenure (months) × subscription price per month'
         ];
         
-        // Add empty row (row 12)
-        $formatted_data[] = [];
+                $formatted_data[] = [];
         
-        // Add empty row (row 13)
-        $formatted_data[] = [];
+                $formatted_data[] = [];
         
-        // Add detailed orders section starting from row 14
-        $formatted_data[] = [
+                $formatted_data[] = [
             'Order ID',
             'Date',
             'Customer',
@@ -496,8 +513,7 @@ class WooCommerceDataService {
             'Products'
         ];
         
-        // Add individual order details
-        if (isset($report_data['detailed_orders'])) {
+                if (isset($report_data['detailed_orders'])) {
             foreach ($report_data['detailed_orders'] as $order) {
                 $formatted_data[] = [
                     $order['order_id'],
@@ -515,11 +531,9 @@ class WooCommerceDataService {
             }
         }
         
-        // Add empty row before cancellations
-        $formatted_data[] = [];
+                $formatted_data[] = [];
         
-        // Add cancellations section
-        $formatted_data[] = [
+                $formatted_data[] = [
             'CANCELLATIONS',
             '',
             '',
@@ -547,8 +561,7 @@ class WooCommerceDataService {
             ''
         ];
         
-        // Add individual cancellation details
-        if (isset($report_data['detailed_cancellations'])) {
+                if (isset($report_data['detailed_cancellations'])) {
             foreach ($report_data['detailed_cancellations'] as $cancellation) {
                 $formatted_data[] = [
                     $cancellation['subscription_id'],
@@ -586,21 +599,16 @@ class WooCommerceDataService {
                 continue;
             }
             
-            // Calculate order metrics
-            $subtotal = $order->get_subtotal();
+                        $subtotal = $order->get_subtotal();
             $discount = $order->get_discount_total();
             $refund_total = $order->get_total_refunded();
-            $gross_revenue = $subtotal; // Excluding shipping and taxes
-            $net_revenue = $gross_revenue - $discount - $refund_total;
+            $gross_revenue = $subtotal;             $net_revenue = $gross_revenue - $discount - $refund_total;
             
-            // Check if this is a trial order
-            $is_trial = $this->isTrialOrder($order);
+                        $is_trial = $this->isTrialOrder($order);
             
-            // Check if this is a new member
-            $is_new_member = $this->isNewMemberOrder($order);
+                        $is_new_member = $this->isNewMemberOrder($order);
             
-            // Get product names
-            $products = [];
+                        $products = [];
             foreach ($order->get_items() as $item) {
                 $product = $item->get_product();
                 if ($product) {
@@ -630,8 +638,7 @@ class WooCommerceDataService {
      * Get detailed cancellations for the date range
      */
     private function getDetailedCancellations($date_range) {
-        // Check if WooCommerce Subscriptions is active
-        if (!function_exists('wcs_get_subscriptions')) {
+                if (!function_exists('wcs_get_subscriptions')) {
             return [];
         }
         
@@ -648,44 +655,37 @@ class WooCommerceDataService {
                 continue;
             }
             
-            // Get actual cancellation date (not modification date)
-            $date_created = $subscription->get_date_created();
+                        $date_created = $subscription->get_date_created();
             $date_modified = $subscription->get_date_modified();
             $date_cancelled = $subscription->get_date('cancelled');
             
-            // Use actual cancellation date for filtering (not modification date)
-            $effective_cancel_date = $date_cancelled ?: $date_modified;
+                        $effective_cancel_date = $date_cancelled ?: $date_modified;
             
             if (!$effective_cancel_date) {
                 continue;
             }
             
-            // Manual PHP date filtering since WooCommerce filtering is unreliable
-            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
+                        $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
                 ? $effective_cancel_date->getTimestamp() 
                 : strtotime($effective_cancel_date);
                 
             $start_timestamp = strtotime($date_range['start']);
             $end_timestamp = strtotime($date_range['end']);
             
-            // Only include if cancellation date is within the specified range
-            if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
+                        if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
                 continue;
             }
             
-            // Helper function to safely format dates
-            $format_date = function($date) {
+                        $format_date = function($date) {
                 if (!$date) return 'N/A';
                 if (is_string($date)) return $date;
                 if (is_object($date) && method_exists($date, 'date')) return $date->date('Y-m-d H:i:s');
                 return 'Unknown format';
             };
             
-            // Calculate days active - ensure both dates are DateTime objects
-            $created_date_obj = $date_created;
+                        $created_date_obj = $date_created;
             $cancel_date_obj = $effective_cancel_date;
             
-            // Convert to DateTime objects if they're strings
             if (is_string($created_date_obj)) {
                 $created_date_obj = new \DateTime($created_date_obj);
             }
@@ -693,7 +693,6 @@ class WooCommerceDataService {
                 $cancel_date_obj = new \DateTime($cancel_date_obj);
             }
             
-            // Calculate days active safely
             $days_active = 0;
             if ($created_date_obj && $cancel_date_obj && 
                 $created_date_obj instanceof \DateTimeInterface && 
@@ -701,17 +700,14 @@ class WooCommerceDataService {
                 $days_active = $created_date_obj->diff($cancel_date_obj)->days;
             }
             
-            // Get subscription value
-            $subscription_value = $subscription->get_total();
+                        $subscription_value = $subscription->get_total();
             
-            // Get cancellation reason (if available)
-            $cancellation_reason = $subscription->get_meta('_cancellation_reason', true);
+                        $cancellation_reason = $subscription->get_meta('_cancellation_reason', true);
             if (empty($cancellation_reason)) {
                 $cancellation_reason = 'Not specified';
             }
             
-            // Get product names
-            $products = [];
+                        $products = [];
             foreach ($subscription->get_items() as $item) {
                 $product = $item->get_product();
                 if ($product) {
@@ -738,8 +734,7 @@ class WooCommerceDataService {
      * Check if an order is for a trial subscription
      */
     private function isTrialOrder($order) {
-        // Check if order has subscription items
-        if (!function_exists('wcs_order_contains_subscription')) {
+                if (!function_exists('wcs_order_contains_subscription')) {
             return false;
         }
         
@@ -747,8 +742,7 @@ class WooCommerceDataService {
             return false;
         }
         
-        // Check if any subscription from this order has trial
-        $subscriptions = wcs_get_subscriptions_for_order($order);
+                $subscriptions = wcs_get_subscriptions_for_order($order);
         foreach ($subscriptions as $subscription) {
             if ($this->subscriptionHasTrial($subscription)) {
                 return true;
@@ -762,8 +756,7 @@ class WooCommerceDataService {
      * Check if an order represents a new member (paid subscription, not trial)
      */
     private function isNewMemberOrder($order) {
-        // Check if order has subscription items
-        if (!function_exists('wcs_order_contains_subscription')) {
+                if (!function_exists('wcs_order_contains_subscription')) {
             return false;
         }
         
@@ -771,11 +764,9 @@ class WooCommerceDataService {
             return false;
         }
         
-        // Check if this creates a new paid subscription (not trial)
-        $subscriptions = wcs_get_subscriptions_for_order($order);
+                $subscriptions = wcs_get_subscriptions_for_order($order);
         foreach ($subscriptions as $subscription) {
-            // New member if it's NOT a trial OR if trial has ended
-            if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
+                        if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
                 return true;
             }
         }

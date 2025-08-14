@@ -11,7 +11,6 @@ class DebugLogger {
      * Initialize the logger
      */
     public static function init() {
-        // Create logs directory inside the plugin directory
         $plugin_dir = dirname(dirname(dirname(__FILE__))); // Go up to plugin root
         $log_dir = $plugin_dir . '/logs/';
         
