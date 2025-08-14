@@ -658,10 +658,18 @@ class WooCommerceDataService {
             $date_modified = $subscription->get_date_modified();
             $date_cancelled = $subscription->get_date('cancelled'); // Get actual cancellation date
             
+            // Helper function to safely format dates
+            $format_date = function($date) {
+                if (!$date) return 'N/A';
+                if (is_string($date)) return $date;
+                if (is_object($date) && method_exists($date, 'date')) return $date->date('Y-m-d H:i:s');
+                return 'Unknown format';
+            };
+            
             DebugLogger::log("Processing subscription $sub_id", [
-                'created' => $date_created ? $date_created->date('Y-m-d H:i:s') : 'N/A',
-                'modified' => $date_modified ? $date_modified->date('Y-m-d H:i:s') : 'N/A', 
-                'cancelled' => $date_cancelled ? $date_cancelled->date('Y-m-d H:i:s') : 'N/A',
+                'created' => $format_date($date_created),
+                'modified' => $format_date($date_modified), 
+                'cancelled' => $format_date($date_cancelled),
                 'status' => $subscription->get_status()
             ]);
             
