@@ -69,31 +69,28 @@ class Plugin {
     }
     
     /**
-     * Register scheduled actions
+     * Register all scheduled actions for weekly and monthly exports
+     * Called on WordPress init hook to ensure Action Scheduler setup
      */
     public function registerScheduledActions() {
         $this->action_scheduler_service->registerScheduledActions();
     }
     
     /**
-     * Plugin activation hook
+     * Plugin activation hook handler
+     * Registers scheduled actions and flushes rewrite rules on activation
      */
     public function onActivation() {
-        // Register scheduled actions on activation
         $this->action_scheduler_service->registerScheduledActions();
-        
-        // Flush rewrite rules if needed
         flush_rewrite_rules();
     }
     
     /**
-     * Plugin deactivation hook
+     * Plugin deactivation hook handler
+     * Clears all scheduled actions and flushes rewrite rules on deactivation
      */
     public function onDeactivation() {
-        // Clear scheduled actions on deactivation
         $this->action_scheduler_service->unregisterScheduledActions();
-        
-        // Flush rewrite rules
         flush_rewrite_rules();
     }
     
