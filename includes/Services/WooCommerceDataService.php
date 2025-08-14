@@ -696,7 +696,7 @@ class WooCommerceDataService {
             
             $detailed_cancellations[] = [
                 'subscription_id' => $subscription->get_id(),
-                'date_cancelled' => $date_cancelled->date('Y-m-d H:i:s'),
+                'date_cancelled' => $format_date($date_cancelled),
                 'customer_name' => trim($subscription->get_billing_first_name() . ' ' . $subscription->get_billing_last_name()),
                 'customer_email' => $subscription->get_billing_email(),
                 'subscription_value' => $subscription_value,
