@@ -138,7 +138,7 @@ class AdminController {
     }
     
     /**
-     * AJAX: Disconnect from Google
+     * AJAX: Disconnect from Google Sheets
      */
     public function handleDisconnect() {
         check_ajax_referer('mfx_reporting_nonce', 'nonce');

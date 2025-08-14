@@ -144,7 +144,7 @@ jQuery(document).ready(function($) {
             });
         });
         $('#disconnect-google').on('click', function() {
-            if (!confirm('Are you sure you want to disconnect from Google Sheets?')) {
+            if (!confirm('Are you sure you want to disconnect from Google Sheets? This will remove all scheduled reports settings.')) {
                 return;
             }
             
@@ -163,13 +163,14 @@ jQuery(document).ready(function($) {
                 },
                 success: function(response) {
                     if (response.success) {
-                        showMessage('Successfully disconnected from Google Sheets.', 'success');
+                        showMessage('Successfully disconnected from Google Sheets!', 'success');
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         showMessage('Disconnect failed: ' + response.data.message, 'error');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.log('Disconnect AJAX Error:', xhr, status, error);
                     showMessage('Disconnect failed. Please try again.', 'error');
                 },
                 complete: function() {
