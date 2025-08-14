@@ -681,8 +681,25 @@ class WooCommerceDataService {
                 return 'Unknown format';
             };
             
-            // Calculate days active
-            $days_active = $date_created->diff($effective_cancel_date)->days;
+            // Calculate days active - ensure both dates are DateTime objects
+            $created_date_obj = $date_created;
+            $cancel_date_obj = $effective_cancel_date;
+            
+            // Convert to DateTime objects if they're strings
+            if (is_string($created_date_obj)) {
+                $created_date_obj = new \DateTime($created_date_obj);
+            }
+            if (is_string($cancel_date_obj)) {
+                $cancel_date_obj = new \DateTime($cancel_date_obj);
+            }
+            
+            // Calculate days active safely
+            $days_active = 0;
+            if ($created_date_obj && $cancel_date_obj && 
+                $created_date_obj instanceof \DateTimeInterface && 
+                $cancel_date_obj instanceof \DateTimeInterface) {
+                $days_active = $created_date_obj->diff($cancel_date_obj)->days;
+            }
             
             // Get subscription value
             $subscription_value = $subscription->get_total();
