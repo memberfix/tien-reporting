@@ -235,9 +235,9 @@ class GoogleSheetsService {
                     'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
                 ]);
             }
-            delete_option('mfx_google_access_token');
-            delete_option('mfx_google_refresh_token');
-            delete_option('mfx_google_token_expires');
+            delete_option('mfx_reporting_google_access_token');
+            delete_option('mfx_reporting_google_refresh_token');
+            delete_option('mfx_reporting_google_token_expires');
             
             return [
                 'success' => true,

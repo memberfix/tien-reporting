@@ -180,28 +180,14 @@ class WooCommerceDataService {
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'pending', 'cancelled', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $trial_count = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
             if (!$subscription instanceof \WC_Subscription) {
-                continue;
-            }
-            
-            $date_created = $subscription->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
                 continue;
             }
             
@@ -223,28 +209,14 @@ class WooCommerceDataService {
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'on-hold', 'pending-cancel', 'cancelled', 'expired'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $new_members = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
             if (!$subscription instanceof \WC_Subscription) {
-                continue;
-            }
-            
-            $date_created = $subscription->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
                 continue;
             }
             
@@ -266,32 +238,18 @@ class WooCommerceDataService {
         
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $cancellations = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($subscriptions as $subscription) {
             if ($subscription->get_status() !== 'cancelled') {
                 continue;
             }
             
-            $date_cancelled = $subscription->get_date('cancelled');
-            $effective_cancel_date = $date_cancelled ?: $subscription->get_date_modified();
-            
-            if (!$effective_cancel_date) {
-                continue;
-            }
-            
-            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
-                ? $effective_cancel_date->getTimestamp() 
-                : strtotime($effective_cancel_date);
-                
-            if ($cancel_timestamp >= $start_timestamp && $cancel_timestamp <= $end_timestamp) {
-                $cancellations++;
-            }
+            $cancellations++;
         }
         
         return $cancellations;
@@ -299,18 +257,32 @@ class WooCommerceDataService {
     
     /**
      * Get Rolling LTV: Total revenue from active customers divided by number of active customers in date range
+     * NOTE: Uses manual filtering because wcs_get_subscriptions() doesn't support date_created filtering reliably
      */
     private function getRollingLTV($date_range) {
         if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
         
-        $subscriptions = wcs_get_subscriptions([
+        // TEST 1: Try WooCommerce date filtering first
+        $wc_filtered_subscriptions = wcs_get_subscriptions([
+            'subscription_status' => ['active', 'cancelled', 'expired'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+        
+        error_log("Rolling LTV DEBUG - WC Filtered: " . count($wc_filtered_subscriptions) . " subscriptions found");
+        
+        // TEST 2: Get all subscriptions for manual filtering
+        $all_subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['active', 'cancelled', 'expired'],
             'limit' => -1
         ]);
         
-        if (empty($subscriptions)) {
+        error_log("Rolling LTV DEBUG - All subscriptions: " . count($all_subscriptions) . " total subscriptions");
+        
+        if (empty($all_subscriptions)) {
+            error_log("Rolling LTV DEBUG - No subscriptions found at all!");
             return 0;
         }
         
@@ -319,8 +291,10 @@ class WooCommerceDataService {
         
         $total_revenue = 0;
         $active_customers = [];
+        $manual_filtered_count = 0;
         
-        foreach ($subscriptions as $subscription) {
+        // Manual filtering with detailed logging
+        foreach ($all_subscriptions as $subscription) {
             if (!$subscription instanceof \WC_Subscription) {
                 continue;
             }
@@ -334,50 +308,48 @@ class WooCommerceDataService {
                 ? $date_created->getTimestamp() 
                 : strtotime($date_created);
             
-            // Check if subscription was active during the date range
-            $subscription_active_in_range = false;
+            $formatted_date = date('Y-m-d', $created_timestamp);
             
-            // If subscription started before or during the range
-            if ($created_timestamp <= $end_timestamp) {
-                $status = $subscription->get_status();
-                
-                if ($status === 'active') {
-                    // Active subscription - check if it started before range end
-                    $subscription_active_in_range = true;
-                } else {
-                    // Cancelled/expired - check if it was cancelled after range start
-                    $date_cancelled = $subscription->get_date('cancelled');
-                    if ($date_cancelled) {
-                        $cancel_timestamp = is_object($date_cancelled) && method_exists($date_cancelled, 'getTimestamp') 
-                            ? $date_cancelled->getTimestamp() 
-                            : strtotime($date_cancelled);
-                        
-                        if ($cancel_timestamp >= $start_timestamp) {
-                            $subscription_active_in_range = true;
-                        }
-                    }
-                }
+            // Log first few subscriptions for debugging
+            if ($manual_filtered_count < 3) {
+                error_log("Rolling LTV DEBUG - Subscription {$subscription->get_id()} created: {$formatted_date}");
             }
-            
-            if ($subscription_active_in_range) {
+                
+            if ($created_timestamp >= $start_timestamp && $created_timestamp <= $end_timestamp) {
+                $manual_filtered_count++;
+                
                 $customer_id = $subscription->get_customer_id();
                 if ($customer_id) {
                     $active_customers[$customer_id] = true;
                 }
                 
-                // Calculate revenue for this subscription in the period
+                // Calculate revenue for this subscription
                 $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
                 $total_revenue += $monthly_price;
+                
+                // Log first few matches
+                if ($manual_filtered_count <= 3) {
+                    error_log("Rolling LTV DEBUG - MATCH #{$manual_filtered_count}: Subscription {$subscription->get_id()}, Customer {$customer_id}, Revenue: {$monthly_price}");
+                }
             }
         }
         
         $customer_count = count($active_customers);
+        $ltv_result = $customer_count > 0 ? round($total_revenue / $customer_count, 2) : 0;
+        
+        // Comprehensive logging
+        error_log("Rolling LTV DEBUG - Date Range: {$date_range['start']} to {$date_range['end']}");
+        error_log("Rolling LTV DEBUG - WC Filtered: " . count($wc_filtered_subscriptions) . " subscriptions");
+        error_log("Rolling LTV DEBUG - Manual Filtered: {$manual_filtered_count} subscriptions");
+        error_log("Rolling LTV DEBUG - Total Revenue: {$total_revenue}");
+        error_log("Rolling LTV DEBUG - Unique Customers: {$customer_count}");
+        error_log("Rolling LTV DEBUG - Final LTV: {$ltv_result}");
         
         if ($customer_count === 0) {
             return 0;
         }
         
-        return round($total_revenue / $customer_count, 2);
+        return $ltv_result;
     }
     
     /**
@@ -640,41 +612,28 @@ class WooCommerceDataService {
     private function getDetailedOrders($date_range) {
         $orders = wc_get_orders([
             'status' => ['completed', 'processing', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $detailed_orders = [];
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
         foreach ($orders as $order) {
             if (!$order instanceof \WC_Order) {
                 continue;
             }
             
-            $date_created = $order->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
-                continue;
-            }
-            
-                        $subtotal = $order->get_subtotal();
+            $subtotal = $order->get_subtotal();
             $discount = $order->get_discount_total();
             $refund_total = $order->get_total_refunded();
-            $gross_revenue = $subtotal;             $net_revenue = $gross_revenue - $discount - $refund_total;
+            $gross_revenue = $subtotal;
+            $net_revenue = $gross_revenue - $discount - $refund_total;
             
-                        $is_trial = $this->isTrialOrder($order);
+            $is_trial = $this->isTrialOrder($order);
             
-                        $is_new_member = $this->isNewMemberOrder($order);
+            $is_new_member = $this->isNewMemberOrder($order);
             
-                        $products = [];
+            $products = [];
             foreach ($order->get_items() as $item) {
                 $product = $item->get_product();
                 if ($product) {
