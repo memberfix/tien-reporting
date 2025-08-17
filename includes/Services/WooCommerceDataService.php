@@ -25,13 +25,13 @@ class WooCommerceDataService {
             $date = $this->getYesterdayDate();
         }
         
-                if (!function_exists('wc_get_orders')) {
+        if (!function_exists('wc_get_orders')) {
             throw new \Exception('WooCommerce is not active');
         }
         
-                $date_range = $this->getDateRange($period, $date);
+        $date_range = $this->getDateRange($period, $date);
         
-                $metrics = [
+        $metrics = [
             'period' => $period,
             'date' => $date,
             'date_range' => $date_range,
@@ -42,12 +42,14 @@ class WooCommerceDataService {
             'trials_started' => $this->getTrialsStarted($date_range),
             'new_members' => $this->getNewMembers($date_range),
             'cancellations' => $this->getCancellations($date_range),
-            'net_paid_subscriber_growth' => 0,             'rolling_ltv' => $this->getRollingLTV($date_range),
+            'net_paid_subscriber_growth' => 0,
+            'rolling_ltv' => $this->getRollingLTV($date_range),
+            'trial_order_percentage' => $this->getTrialOrderPercentage($date_range),
             'detailed_orders' => $this->getDetailedOrders($date_range),
             'detailed_cancellations' => $this->getDetailedCancellations($date_range)
         ];
         
-                $metrics['net_paid_subscriber_growth'] = $metrics['new_members'] - $metrics['cancellations'];
+        $metrics['net_paid_subscriber_growth'] = $metrics['new_members'] - $metrics['cancellations'];
         
         return $metrics;
     }
@@ -519,6 +521,13 @@ class WooCommerceDataService {
             'Average revenue per active customer'
         ];
         
+        $formatted_data[] = [
+            'Trial Order Percentage',
+            number_format($report_data['trial_order_percentage'], 2) . '%',
+            '',
+            'Percentage of orders that are trials'
+        ];
+        
                 $formatted_data[] = [];
         
                 $formatted_data[] = [];
@@ -797,5 +806,27 @@ class WooCommerceDataService {
         }
         
         return false;
+    }
+    
+    /**
+     * Get percentage of trial orders
+     */
+    private function getTrialOrderPercentage($date_range) {
+        $orders = wc_get_orders([
+            'status' => ['completed', 'processing', 'on-hold'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+        
+        $total_orders = count($orders);
+        $trial_orders = 0;
+        
+        foreach ($orders as $order) {
+            if ($this->isTrialOrder($order)) {
+                $trial_orders++;
+            }
+        }
+        
+        return $total_orders > 0 ? round(($trial_orders / $total_orders) * 100, 2) : 0;
     }
 }
