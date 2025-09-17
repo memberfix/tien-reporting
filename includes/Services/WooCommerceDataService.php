@@ -223,7 +223,7 @@ class WooCommerceDataService {
             }
             
             if ($subscription->get_total() > 0) {
-                error_log(print_r($subscription, true));
+                report_log($subscription, 'Subscription');
                 $new_members++;
             }
         }
