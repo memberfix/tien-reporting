@@ -240,7 +240,7 @@ class WooCommerceDataService {
         }
         
         $subscriptions = wcs_get_subscriptions([
-            'subscription_status' => ['cancelled'],
+            'subscription_status' => ['cancelled', 'pending-cancellation'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
