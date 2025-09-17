@@ -746,7 +746,7 @@ class WooCommerceDataService {
      * Check if an order is for a trial subscription
      */
     private function isTrialOrder($order) {
-                if (!function_exists('wcs_order_contains_subscription')) {
+        if (!function_exists('wcs_order_contains_subscription')) {
             return false;
         }
         
@@ -754,7 +754,7 @@ class WooCommerceDataService {
             return false;
         }
         
-                $subscriptions = wcs_get_subscriptions_for_order($order);
+        $subscriptions = wcs_get_subscriptions_for_order($order);
         foreach ($subscriptions as $subscription) {
             if ($this->subscriptionHasTrial($subscription)) {
                 return true;
@@ -773,36 +773,16 @@ class WooCommerceDataService {
             return false;
         }
         
-        if (!wcs_order_contains_subscription($order)) {
+        if (!wcs_order_contains_subscription($order) || $this->isTrialOrder($order)) {
             return false;
         }
         
         // Get subscriptions for this order
         $subscriptions = wcs_get_subscriptions_for_order($order);
-        
-        foreach ($subscriptions as $subscription) {
-            $parent_order_id = $subscription->get_parent_id();
-            $has_trial = $this->subscriptionHasTrial($subscription);
-            $subscription_total = $subscription->get_total();                        
-            
-            // Check if this is the parent order (initial subscription creation)
-            if ($parent_order_id == $order->get_id()) {
-                
-                // It's a new member if:
-                // 1. No trial at all, OR
-                // 2. Subscription has a recurring payment > 0 (paid subscription)
-                if (!$has_trial) {
-                    return true;
-                }
-                
-                // Has trial - but if subscription total > 0, it's still a paid subscription
-                if ($subscription_total > 0) {
-                    return true;
-                }
-                
-            } 
-        }
-        
+
+        if (!empty($subscriptions) && $order->get_total() > 0) {
+            return true;
+        }           
         return false;
     }
     
