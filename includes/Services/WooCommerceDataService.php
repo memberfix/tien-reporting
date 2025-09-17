@@ -239,7 +239,7 @@ class WooCommerceDataService {
         }
         
         $subscriptions = wcs_get_subscriptions([
-            'subscription_status' => ['cancelled', 'pending-cancel'],
+            'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -247,8 +247,24 @@ class WooCommerceDataService {
         $cancellations = 0;
         
         foreach ($subscriptions as $subscription) {
-            report_log($subscription, 'Subscription logging');
-            if ($subscription->get_status() !== 'cancelled' && $subscription->get_status() !== 'pending-cancel') {
+            $date_created = $subscription->get_date_created();
+            $date_modified = $subscription->get_date_modified();
+            $date_cancelled = $subscription->get_date('cancelled');
+            
+            $effective_cancel_date = $date_cancelled ?: $date_modified;
+            
+            if (!$effective_cancel_date) {
+                continue;
+            }
+            
+            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
+                ? $effective_cancel_date->getTimestamp() 
+                : strtotime($effective_cancel_date);
+                
+            $start_timestamp = strtotime($date_range['start']);
+            $end_timestamp = strtotime($date_range['end']);
+            
+            if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
                 continue;
             }
             
@@ -655,7 +671,7 @@ class WooCommerceDataService {
         }
         
         $subscriptions = wcs_get_subscriptions([
-            'subscription_status' => ['cancelled', 'pending-cancel'],
+            'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
