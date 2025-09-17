@@ -249,7 +249,7 @@ class WooCommerceDataService {
         
         foreach ($subscriptions as $subscription) {
             report_log($subscription, 'Subscription logging');
-            if ($subscription->get_status() !== 'cancelled' || $subscription->get_status() !== 'pending-cancellation') {
+            if ($subscription->get_status() !== 'cancelled' && $subscription->get_status() !== 'pending-cancellation') {
                 continue;
             }
             
