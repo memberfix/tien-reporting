@@ -248,7 +248,7 @@ class WooCommerceDataService {
         $cancellations = 0;
         
         foreach ($subscriptions as $subscription) {
-            if ($subscription->get_status() !== 'cancelled') {
+            if ($subscription->get_status() !== 'cancelled' || $subscription->get_status() !== 'pending-cancellation') {
                 continue;
             }
             
@@ -667,35 +667,35 @@ class WooCommerceDataService {
                 continue;
             }
             
-                        $date_created = $subscription->get_date_created();
+            $date_created = $subscription->get_date_created();
             $date_modified = $subscription->get_date_modified();
             $date_cancelled = $subscription->get_date('cancelled');
             
-                        $effective_cancel_date = $date_cancelled ?: $date_modified;
+            $effective_cancel_date = $date_cancelled ?: $date_modified;
             
             if (!$effective_cancel_date) {
                 continue;
             }
             
-                        $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
+            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
                 ? $effective_cancel_date->getTimestamp() 
                 : strtotime($effective_cancel_date);
                 
             $start_timestamp = strtotime($date_range['start']);
             $end_timestamp = strtotime($date_range['end']);
             
-                        if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
+            if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
                 continue;
             }
             
-                        $format_date = function($date) {
+            $format_date = function($date) {
                 if (!$date) return 'N/A';
                 if (is_string($date)) return $date;
                 if (is_object($date) && method_exists($date, 'date')) return $date->date('Y-m-d H:i:s');
                 return 'Unknown format';
             };
             
-                        $created_date_obj = $date_created;
+            $created_date_obj = $date_created;
             $cancel_date_obj = $effective_cancel_date;
             
             if (is_string($created_date_obj)) {
@@ -712,14 +712,14 @@ class WooCommerceDataService {
                 $days_active = $created_date_obj->diff($cancel_date_obj)->days;
             }
             
-                        $subscription_value = $subscription->get_total();
+            $subscription_value = $subscription->get_total();
             
-                        $cancellation_reason = $subscription->get_meta('_cancellation_reason', true);
+            $cancellation_reason = $subscription->get_meta('_cancellation_reason', true);
             if (empty($cancellation_reason)) {
                 $cancellation_reason = 'Not specified';
             }
             
-                        $products = [];
+            $products = [];
             foreach ($subscription->get_items() as $item) {
                 $product = $item->get_product();
                 if ($product) {
