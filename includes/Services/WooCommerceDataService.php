@@ -223,7 +223,6 @@ class WooCommerceDataService {
             }
             
             if ($subscription->get_total() > 0 && $subscription->get_status() === 'active') {
-                report_log($subscription, 'Subscription');
                 $new_members++;
             }
         }
