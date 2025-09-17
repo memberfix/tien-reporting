@@ -240,7 +240,7 @@ class WooCommerceDataService {
         }
         
         $subscriptions = wcs_get_subscriptions([
-            'subscription_status' => ['cancelled', 'pending-cancellation'],
+            'subscription_status' => ['cancelled', 'pending-cancel'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -249,7 +249,7 @@ class WooCommerceDataService {
         
         foreach ($subscriptions as $subscription) {
             report_log($subscription, 'Subscription logging');
-            if ($subscription->get_status() !== 'cancelled' && $subscription->get_status() !== 'pending-cancellation') {
+            if ($subscription->get_status() !== 'cancelled' && $subscription->get_status() !== 'pending-cancel') {
                 continue;
             }
             
