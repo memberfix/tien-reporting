@@ -223,6 +223,7 @@ class WooCommerceDataService {
             }
             
             if ($subscription->get_total() > 0) {
+                error_log(print_r($subscription, true));
                 $new_members++;
             }
         }
@@ -271,9 +272,7 @@ class WooCommerceDataService {
             'subscription_status' => ['active', 'cancelled', 'expired'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
-        ]);
-        
-        error_log("Rolling LTV DEBUG - WC Filtered: " . count($wc_filtered_subscriptions) . " subscriptions found");
+        ]);        
         
         // TEST 2: Get all subscriptions for manual filtering
         $all_subscriptions = wcs_get_subscriptions([
@@ -281,10 +280,7 @@ class WooCommerceDataService {
             'limit' => -1
         ]);
         
-        error_log("Rolling LTV DEBUG - All subscriptions: " . count($all_subscriptions) . " total subscriptions");
-        
         if (empty($all_subscriptions)) {
-            error_log("Rolling LTV DEBUG - No subscriptions found at all!");
             return 0;
         }
         
@@ -312,11 +308,6 @@ class WooCommerceDataService {
             
             $formatted_date = date('Y-m-d', $created_timestamp);
             
-            // Log first few subscriptions for debugging
-            if ($manual_filtered_count < 3) {
-                error_log("Rolling LTV DEBUG - Subscription {$subscription->get_id()} created: {$formatted_date}");
-            }
-                
             if ($created_timestamp >= $start_timestamp && $created_timestamp <= $end_timestamp) {
                 $manual_filtered_count++;
                 
@@ -328,24 +319,11 @@ class WooCommerceDataService {
                 // Calculate revenue for this subscription
                 $monthly_price = $this->getMonthlySubscriptionPrice($subscription);
                 $total_revenue += $monthly_price;
-                
-                // Log first few matches
-                if ($manual_filtered_count <= 3) {
-                    error_log("Rolling LTV DEBUG - MATCH #{$manual_filtered_count}: Subscription {$subscription->get_id()}, Customer {$customer_id}, Revenue: {$monthly_price}");
-                }
             }
         }
         
         $customer_count = count($active_customers);
         $ltv_result = $customer_count > 0 ? round($total_revenue / $customer_count, 2) : 0;
-        
-        // Comprehensive logging
-        error_log("Rolling LTV DEBUG - Date Range: {$date_range['start']} to {$date_range['end']}");
-        error_log("Rolling LTV DEBUG - WC Filtered: " . count($wc_filtered_subscriptions) . " subscriptions");
-        error_log("Rolling LTV DEBUG - Manual Filtered: {$manual_filtered_count} subscriptions");
-        error_log("Rolling LTV DEBUG - Total Revenue: {$total_revenue}");
-        error_log("Rolling LTV DEBUG - Unique Customers: {$customer_count}");
-        error_log("Rolling LTV DEBUG - Final LTV: {$ltv_result}");
         
         if ($customer_count === 0) {
             return 0;
@@ -378,12 +356,12 @@ class WooCommerceDataService {
      * Check if a subscription has a trial period
      */
     private function subscriptionHasTrial($subscription) {
-                $subscription_items = $subscription->get_items();
+        $subscription_items = $subscription->get_items();
         
         foreach ($subscription_items as $item) {
             $product_id = $item->get_product_id();
             
-                        if (class_exists('\WC_Subscriptions_Product') && \WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
+            if (class_exists('\WC_Subscriptions_Product') && \WC_Subscriptions_Product::get_trial_length($product_id) > 0) {
                 return true;
             }
         }
@@ -802,41 +780,29 @@ class WooCommerceDataService {
         // Get subscriptions for this order
         $subscriptions = wcs_get_subscriptions_for_order($order);
         
-        // Debug logging
-        error_log("New Member Check - Order ID: " . $order->get_id() . ", Order Total: " . $order->get_total());
-        
         foreach ($subscriptions as $subscription) {
             $parent_order_id = $subscription->get_parent_id();
             $has_trial = $this->subscriptionHasTrial($subscription);
-            $subscription_total = $subscription->get_total();
-            
-            error_log("  - Subscription ID: " . $subscription->get_id() . ", Parent Order: {$parent_order_id}, Has Trial: " . ($has_trial ? 'Yes' : 'No') . ", Sub Total: {$subscription_total}");
+            $subscription_total = $subscription->get_total();                        
             
             // Check if this is the parent order (initial subscription creation)
             if ($parent_order_id == $order->get_id()) {
-                error_log("  - This IS the parent order");
                 
                 // It's a new member if:
                 // 1. No trial at all, OR
                 // 2. Subscription has a recurring payment > 0 (paid subscription)
                 if (!$has_trial) {
-                    error_log("  - No trial -> NEW MEMBER");
                     return true;
                 }
                 
                 // Has trial - but if subscription total > 0, it's still a paid subscription
                 if ($subscription_total > 0) {
-                    error_log("  - Has trial but subscription total > 0 -> NEW MEMBER");
                     return true;
                 }
                 
-                error_log("  - Has trial and subscription total = 0 -> NOT new member");
-            } else {
-                error_log("  - This is NOT the parent order (renewal/related order)");
-            }
+            } 
         }
         
-        error_log("  - Final result: NOT a new member");
         return false;
     }
     
