@@ -790,7 +790,8 @@ class WooCommerceDataService {
      * Check if an order represents a new member (paid subscription, not trial)
      */
     private function isNewMemberOrder($order) {
-                if (!function_exists('wcs_order_contains_subscription')) {
+        // Check if this order contains a subscription
+        if (!function_exists('wcs_order_contains_subscription')) {
             return false;
         }
         
@@ -798,13 +799,44 @@ class WooCommerceDataService {
             return false;
         }
         
-                $subscriptions = wcs_get_subscriptions_for_order($order);
+        // Get subscriptions for this order
+        $subscriptions = wcs_get_subscriptions_for_order($order);
+        
+        // Debug logging
+        error_log("New Member Check - Order ID: " . $order->get_id() . ", Order Total: " . $order->get_total());
+        
         foreach ($subscriptions as $subscription) {
-                        if (!$this->subscriptionHasTrial($subscription) || $this->subscriptionTrialHasEnded($subscription)) {
-                return true;
+            $parent_order_id = $subscription->get_parent_id();
+            $has_trial = $this->subscriptionHasTrial($subscription);
+            $subscription_total = $subscription->get_total();
+            
+            error_log("  - Subscription ID: " . $subscription->get_id() . ", Parent Order: {$parent_order_id}, Has Trial: " . ($has_trial ? 'Yes' : 'No') . ", Sub Total: {$subscription_total}");
+            
+            // Check if this is the parent order (initial subscription creation)
+            if ($parent_order_id == $order->get_id()) {
+                error_log("  - This IS the parent order");
+                
+                // It's a new member if:
+                // 1. No trial at all, OR
+                // 2. Subscription has a recurring payment > 0 (paid subscription)
+                if (!$has_trial) {
+                    error_log("  - No trial -> NEW MEMBER");
+                    return true;
+                }
+                
+                // Has trial - but if subscription total > 0, it's still a paid subscription
+                if ($subscription_total > 0) {
+                    error_log("  - Has trial but subscription total > 0 -> NEW MEMBER");
+                    return true;
+                }
+                
+                error_log("  - Has trial and subscription total = 0 -> NOT new member");
+            } else {
+                error_log("  - This is NOT the parent order (renewal/related order)");
             }
         }
         
+        error_log("  - Final result: NOT a new member");
         return false;
     }
     
