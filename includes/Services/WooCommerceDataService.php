@@ -65,7 +65,10 @@ class WooCommerceDataService {
                 $start_date = date('Y-m-d', strtotime($date . ' -6 days')) . ' 00:00:00';
                 break;
             case 'monthly':
-                $start_date = date('Y-m-d', strtotime($date . ' -29 days')) . ' 00:00:00';
+                $refForStart = new \DateTime($date);
+                $refForEnd = new \DateTime($date);
+                $start_date = $refForStart->modify('first day of last month')->format('Y-m-d') . ' 00:00:00';
+                $end_date = $refForEnd->modify('last day of last month')->format('Y-m-d') . ' 23:59:59';
                 break;
             default:
                 $start_date = $date . ' 00:00:00';
