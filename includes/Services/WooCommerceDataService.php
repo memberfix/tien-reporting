@@ -457,7 +457,7 @@ class WooCommerceDataService {
             'Gross Revenue (' . $report_data['period'] . ')',
             '$' . number_format($report_data['gross_revenue'], 2),
             'USD',
-            'Total sales excluding shipping and taxes'
+            'Total sales excluding shipping and taxes (includes discounts)'
         ];
         
         $formatted_data[] = [
