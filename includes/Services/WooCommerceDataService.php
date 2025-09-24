@@ -208,6 +208,11 @@ class WooCommerceDataService {
                 continue;
             }
             
+            // Skip subscriptions that have a trial period
+            if ($this->subscriptionHasTrial($subscription)) {
+                continue;
+            }
+            
             if ($subscription->get_total() > 0 && $subscription->get_status() === 'active') {
                 $new_members++;
             }
@@ -375,15 +380,15 @@ class WooCommerceDataService {
      * Check if a subscription's trial period has ended
      */
     private function subscriptionTrialHasEnded($subscription) {
-                if (method_exists($subscription, 'get_time')) {
+        if (method_exists($subscription, 'get_time')) {
             $trial_end = $subscription->get_time('trial_end');
             if ($trial_end && $trial_end < time()) {
                 return true;
             }
         }
         
-                if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
-                        $has_trial = $this->subscriptionHasTrial($subscription);
+        if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
+            $has_trial = $this->subscriptionHasTrial($subscription);
             if ($has_trial) {
                                 $date_created = $subscription->get_date_created();
                 $subscription_items = $subscription->get_items();
