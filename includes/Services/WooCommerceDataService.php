@@ -450,14 +450,14 @@ class WooCommerceDataService {
             'Net Revenue (' . $report_data['period'] . ')',
             '$' . number_format($report_data['net_revenue'], 2),
             'USD',
-            'Total sales minus discounts and refunds (excluding shipping/taxes)'
+            'Total sales excluding discounts, taxes, refunds, and woopayments transaction fees'
         ];
         
         $formatted_data[] = [
             'Gross Revenue (' . $report_data['period'] . ')',
             '$' . number_format($report_data['gross_revenue'], 2),
             'USD',
-            'Total sales excluding shipping and taxes (includes discounts)'
+            'Total sales including shipping, taxes, and discounts (excludes woopayments transaction fees)'
         ];
         
         $formatted_data[] = [
@@ -628,11 +628,11 @@ class WooCommerceDataService {
                 continue;
             }
             
-            $subtotal = $order->get_subtotal();
+            $gross_revenue = $order->get_total();
             $discount = $order->get_discount_total();
             $refund_total = $order->get_total_refunded();
-            $gross_revenue = $subtotal;
-            $net_revenue = $gross_revenue - $discount - $refund_total;
+            $sub_revenue = $order->get_subtotal();
+            $net_revenue = $sub_revenue - $discount - $refund_total;
             
             $is_trial = $this->isTrialOrder($order);
             
