@@ -93,7 +93,7 @@ class WooCommerceDataService {
      */
     private function getGrossRevenue($date_range) {
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
+            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -117,7 +117,7 @@ class WooCommerceDataService {
      */
     private function getDiscountsGiven($date_range) {
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
+            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -140,7 +140,8 @@ class WooCommerceDataService {
      */
     private function getRefunds($date_range) {
         $refunds = wc_get_orders([
-            'type' => 'shop_order_refund',
+            'status' => ['refunded'],
+            'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
