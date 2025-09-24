@@ -614,7 +614,7 @@ class WooCommerceDataService {
      */
     private function getDetailedOrders($date_range) {
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
+            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
