@@ -141,7 +141,7 @@ class WooCommerceDataService {
     private function getRefunds($date_range) {
         $refunds = wc_get_orders([
             'status' => ['refunded'],
-            'date_created' => $date_range['start'] . '...' . $date_range['end'],
+            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
@@ -599,11 +599,19 @@ class WooCommerceDataService {
      * Get detailed orders for the date range
      */
     private function getDetailedOrders($date_range) {
-        $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
+        $regular_orders = wc_get_orders([
+            'status' => ['completed', 'processing', 'on-hold'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
+
+        $refunded_orders = wc_get_orders([
+            'status' => ['refunded'],
+            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+
+        $orders = array_merge($regular_orders, $refunded_orders);
         
         $detailed_orders = [];
         
