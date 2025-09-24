@@ -146,28 +146,13 @@ class WooCommerceDataService {
         ]);
         
         $total_refunds = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
-        foreach ($refunds as $refund) {
-            if (!$refund instanceof \WC_Order_Refund) {
+        foreach ($refunds as $refund) { 
+            if (!$refund instanceof \WC_Order) {
                 continue;
             }
             
-            $date_created = $refund->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
-                continue;
-            }
-            
-            $total_refunds += abs($refund->get_amount());
+            $total_refunds += $refund->get_total_refunded();
         }
         
         return $total_refunds;
