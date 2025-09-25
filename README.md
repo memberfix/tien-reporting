@@ -14,10 +14,11 @@ A comprehensive WooCommerce reporting plugin that provides detailed sales analyt
 
 ## Requirements
 
-- WordPress 5.0 or higher
-- WooCommerce 3.0 or higher
+- WordPress 5.0 or higher (tested up to 6.3)
+- WooCommerce 3.0 or higher (tested up to 8.0)
 - PHP 7.4 or higher
 - Composer (for dependency management)
+- Google Cloud Project with OAuth2 credentials
 
 ## Installation
 
@@ -48,23 +49,27 @@ A comprehensive WooCommerce reporting plugin that provides detailed sales analyt
    - Go to "APIs & Services" → "Library"
    - Search for "Google Sheets API"
    - Click "Enable"
+   - Also enable "Google Drive API" for file access
 
-### 2. Create Service Account
+### 2. Create OAuth 2.0 Credentials
 
 1. Go to "APIs & Services" → "Credentials"
-2. Click "Create Credentials" → "Service Account"
-3. Fill in service account details
-4. Click "Create and Continue"
-5. Skip role assignment (click "Continue")
-6. Click "Done"
+2. Click "Create Credentials" → "OAuth client ID"
+3. Configure consent screen if prompted:
+   - Choose "External" user type
+   - Fill required fields (App name, User support email, Developer contact)
+   - Add scopes: `https://www.googleapis.com/auth/spreadsheets` and `https://www.googleapis.com/auth/drive.readonly`
+4. Select "Web application" as application type
+5. Add authorized redirect URI: `https://yourdomain.com/wp-admin/admin.php?page=mfx-reporting&action=oauth_callback`
+6. Click "Create" and save the Client ID and Client Secret
 
-### 3. Generate Service Account Key
+### 3. Configure WordPress Constants
 
-1. Click on the created service account
-2. Go to "Keys" tab
-3. Click "Add Key" → "Create New Key"
-4. Select "JSON" format
-5. Download the JSON file
+1. Add the following constants to your `wp-config.php` file:
+   ```php
+   define('MFX_GOOGLE_CLIENT_ID', 'your-client-id-here');
+   define('MFX_GOOGLE_CLIENT_SECRET', 'your-client-secret-here');
+   ```
 
 ### 4. Create Google Sheet
 
@@ -73,23 +78,25 @@ A comprehensive WooCommerce reporting plugin that provides detailed sales analyt
    ```
    https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit
    ```
-3. Share the sheet with the service account email (found in JSON file)
-4. Give "Editor" permissions
 
 ## Plugin Configuration
 
 1. **Navigate to Settings**
-   - Go to WordPress Admin → MFX Reporting → Settings
+   - Go to WordPress Admin → MFX Reporting
 
-2. **Google Sheets Configuration**
-   - Upload the service account JSON file
+2. **Google Sheets Authentication**
+   - Click "Connect to Google Sheets" to start OAuth flow
+   - You'll be redirected to Google to authorize the application
+   - Grant permissions for Sheets and Drive access
+   - You'll be redirected back to WordPress upon success
+
+3. **Google Sheets Configuration**
    - Enter your Google Spreadsheet ID
-   - Set the worksheet name (default: "Reports")
-   - Test the connection
+   - Test the connection to verify access
 
-3. **Report Settings**
+4. **Report Settings**
    - Choose report frequency (Manual, Daily, Weekly, Monthly)
-   - Select which KPIs to track
+   - Configure scheduled exports
    - Save settings
 
 ## Usage
@@ -120,34 +127,34 @@ mfx-reporting/
 │       └── admin.js
 ├── includes/
 │   ├── Controllers/
-│   │   ├── AdminController.php
-│   │   ├── ReportController.php
-│   │   └── SettingsController.php
+│   │   └── AdminController.php
 │   ├── Core/
 │   │   └── Plugin.php
-│   ├── Models/
-│   │   └── ReportModel.php
 │   ├── Services/
+│   │   ├── ActionSchedulerService.php
+│   │   ├── DebugLogger.php
 │   │   ├── GoogleSheetsService.php
 │   │   └── WooCommerceDataService.php
 │   └── Views/
 │       └── AdminView.php
 ├── composer.json
 ├── mfx-reporting.php
+├── CLAUDE.md
 └── README.md
 ```
 
 ## Available KPIs
 
-- **Total Sales**: Sum of all completed orders
-- **Total Revenue**: Revenue excluding taxes and shipping
-- **Order Count**: Number of orders placed
-- **Average Order Value**: Average value per order
-- **Customer Count**: Unique customers who made purchases
-- **Refund Amount**: Total refunds processed
-- **Top Products**: Best-selling products by revenue
-- **Category Performance**: Sales by product category
-- **Customer Lifetime Value**: Repeat customer analysis
+- **Net Revenue**: Total sales minus discounts and refunds
+- **Gross Revenue**: Total sales excluding taxes and shipping
+- **Discounts Given**: Total discount amounts applied
+- **Refunds**: Total refunds processed
+- **Trials Started**: New trial subscriptions initiated
+- **New Members**: New paying subscribers
+- **Cancellations**: Subscription cancellations
+- **Net Paid Subscriber Growth**: New members minus cancellations
+- **Rolling LTV**: Customer lifetime value calculation
+- **Trial Order Percentage**: Percentage of orders that are trials
 
 ## Scheduled Reports
 
@@ -162,23 +169,26 @@ The plugin supports automated report generation:
 
 ### Google Sheets Connection Issues
 
-1. **Invalid JSON File**
-   - Ensure you downloaded the correct service account JSON
-   - Verify the file is not corrupted
+1. **OAuth Authentication Failed**
+   - Verify `MFX_GOOGLE_CLIENT_ID` and `MFX_GOOGLE_CLIENT_SECRET` constants are set
+   - Check that redirect URI in Google Cloud Console matches your site URL
+   - Ensure constants contain valid OAuth credentials
 
 2. **Permission Denied**
-   - Share the Google Sheet with the service account email
-   - Grant "Editor" permissions
+   - Verify you have access to the Google Spreadsheet
+   - Check spreadsheet ID is correct
+   - Ensure spreadsheet is not private or restricted
 
 3. **API Not Enabled**
-   - Enable Google Sheets API in Google Cloud Console
+   - Enable both Google Sheets API and Google Drive API in Google Cloud Console
    - Wait a few minutes for activation
+   - Check OAuth consent screen is properly configured
 
 ### Plugin Issues
 
 1. **Missing Dependencies**
    ```bash
-   composer install --no-dev
+   composer install --no-dev 
    ```
 
 2. **WooCommerce Not Active**

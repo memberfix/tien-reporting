@@ -1,0 +1,56 @@
+# Composer dependencies
+/vendor/
+composer.lock
+
+# WordPress core files (if accidentally included)
+/wp-*
+/wordpress/
+/wp-content/
+!/wp-content/plugins/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and debugging
+*.log
+error_log
+debug.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Environment and configuration files
+.env
+.env.local
+.env.production
+config.php
+
+# Google API credentials (sensitive)
+credentials.json
+token.json
+client_secret.json
+
+# WordPress specific
+wp-config.php
+.htaccess
+
+# Plugin specific
+uploads/
+cache/
+
+# Claude Code project instructions
+CLAUDE.md
