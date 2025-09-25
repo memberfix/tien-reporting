@@ -188,7 +188,7 @@ The plugin supports automated report generation:
 
 1. **Missing Dependencies**
    ```bash
-   composer install --no-dev
+   composer install --no-dev 
    ```
 
 2. **WooCommerce Not Active**
