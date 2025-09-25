@@ -466,8 +466,11 @@ class GoogleSheetsService {
                 $week_start = date('Y-m-d', strtotime($date . ' -6 days'));
                 return "Week {$week_start} to {$date}";
             case 'monthly':
-                $month_start = date('Y-m-d', strtotime($date . ' -29 days'));
-                return "Month {$month_start} to {$date}";
+                $refStart = new \DateTime($date);
+                $refEnd = new \DateTime($date);
+                $month_start = $refStart->modify('first day of last month')->format('Y-m-d');
+                $month_end = $refEnd->modify('last day of last month')->format('Y-m-d');
+                return "Month {$month_start} to {$month_end}";
             default:
                 return date('Y-m-d', strtotime($date));
         }

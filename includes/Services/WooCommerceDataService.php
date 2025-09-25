@@ -65,7 +65,10 @@ class WooCommerceDataService {
                 $start_date = date('Y-m-d', strtotime($date . ' -6 days')) . ' 00:00:00';
                 break;
             case 'monthly':
-                $start_date = date('Y-m-d', strtotime($date . ' -29 days')) . ' 00:00:00';
+                $refForStart = new \DateTime($date);
+                $refForEnd = new \DateTime($date);
+                $start_date = $refForStart->modify('first day of last month')->format('Y-m-d') . ' 00:00:00';
+                $end_date = $refForEnd->modify('last day of last month')->format('Y-m-d') . ' 23:59:59';
                 break;
             default:
                 $start_date = $date . ' 00:00:00';
@@ -93,7 +96,7 @@ class WooCommerceDataService {
      */
     private function getGrossRevenue($date_range) {
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
+            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -117,7 +120,7 @@ class WooCommerceDataService {
      */
     private function getDiscountsGiven($date_range) {
         $orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
+            'status' => ['completed', 'processing', 'on-hold', 'refunded'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
@@ -140,33 +143,19 @@ class WooCommerceDataService {
      */
     private function getRefunds($date_range) {
         $refunds = wc_get_orders([
-            'type' => 'shop_order_refund',
+            'status' => ['refunded'],
+            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
         
         $total_refunds = 0;
-        $start_timestamp = strtotime($date_range['start']);
-        $end_timestamp = strtotime($date_range['end']);
         
-        foreach ($refunds as $refund) {
-            if (!$refund instanceof \WC_Order_Refund) {
+        foreach ($refunds as $refund) { 
+            if (!$refund instanceof \WC_Order) {
                 continue;
             }
             
-            $date_created = $refund->get_date_created();
-            if (!$date_created) {
-                continue;
-            }
-            
-            $created_timestamp = is_object($date_created) && method_exists($date_created, 'getTimestamp') 
-                ? $date_created->getTimestamp() 
-                : strtotime($date_created);
-                
-            if ($created_timestamp < $start_timestamp || $created_timestamp > $end_timestamp) {
-                continue;
-            }
-            
-            $total_refunds += abs($refund->get_amount());
+            $total_refunds += $refund->get_total_refunded();
         }
         
         return $total_refunds;
@@ -219,6 +208,11 @@ class WooCommerceDataService {
         
         foreach ($subscriptions as $subscription) {
             if (!$subscription instanceof \WC_Subscription) {
+                continue;
+            }
+            
+            // Skip subscriptions that have a trial period
+            if ($this->subscriptionHasTrial($subscription)) {
                 continue;
             }
             
@@ -389,15 +383,15 @@ class WooCommerceDataService {
      * Check if a subscription's trial period has ended
      */
     private function subscriptionTrialHasEnded($subscription) {
-                if (method_exists($subscription, 'get_time')) {
+        if (method_exists($subscription, 'get_time')) {
             $trial_end = $subscription->get_time('trial_end');
             if ($trial_end && $trial_end < time()) {
                 return true;
             }
         }
         
-                if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
-                        $has_trial = $this->subscriptionHasTrial($subscription);
+        if (method_exists($subscription, 'get_status') && $subscription->get_status() === 'active') {
+            $has_trial = $this->subscriptionHasTrial($subscription);
             if ($has_trial) {
                                 $date_created = $subscription->get_date_created();
                 $subscription_items = $subscription->get_items();
@@ -456,14 +450,14 @@ class WooCommerceDataService {
             'Net Revenue (' . $report_data['period'] . ')',
             '$' . number_format($report_data['net_revenue'], 2),
             'USD',
-            'Total sales minus discounts and refunds (excluding shipping/taxes)'
+            'Total sales excluding discounts, taxes, refunds, and woopayments transaction fees'
         ];
         
         $formatted_data[] = [
             'Gross Revenue (' . $report_data['period'] . ')',
             '$' . number_format($report_data['gross_revenue'], 2),
             'USD',
-            'Total sales excluding shipping and taxes'
+            'Total sales including shipping, taxes, and discounts (excludes woopayments transaction fees)'
         ];
         
         $formatted_data[] = [
@@ -613,11 +607,19 @@ class WooCommerceDataService {
      * Get detailed orders for the date range
      */
     private function getDetailedOrders($date_range) {
-        $orders = wc_get_orders([
+        $regular_orders = wc_get_orders([
             'status' => ['completed', 'processing', 'on-hold'],
             'date_created' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
+
+        $refunded_orders = wc_get_orders([
+            'status' => ['refunded'],
+            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
+            'limit' => -1
+        ]);
+
+        $orders = array_merge($regular_orders, $refunded_orders);
         
         $detailed_orders = [];
         
@@ -626,11 +628,11 @@ class WooCommerceDataService {
                 continue;
             }
             
-            $subtotal = $order->get_subtotal();
+            $gross_revenue = $order->get_total();
             $discount = $order->get_discount_total();
             $refund_total = $order->get_total_refunded();
-            $gross_revenue = $subtotal;
-            $net_revenue = $gross_revenue - $discount - $refund_total;
+            $sub_revenue = $order->get_subtotal();
+            $net_revenue = $sub_revenue - $discount - $refund_total;
             
             $is_trial = $this->isTrialOrder($order);
             
