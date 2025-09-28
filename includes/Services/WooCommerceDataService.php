@@ -107,6 +107,10 @@ class WooCommerceDataService {
             if (!$order instanceof \WC_Order) {
                 continue;
             }
+
+            if ($order->get_billing_email() == 'jandawson@gmail.com') {
+                continue;
+            }
             
             $subtotal = $order->get_subtotal();
             $gross_revenue += $subtotal;
@@ -129,6 +133,10 @@ class WooCommerceDataService {
         
         foreach ($orders as $order) {
             if (!$order instanceof \WC_Order) {
+                continue;
+            }
+
+            if ($order->get_billing_email() == 'jandawson@gmail.com') {
                 continue;
             }
             
@@ -627,6 +635,9 @@ class WooCommerceDataService {
             if (!$order instanceof \WC_Order) {
                 continue;
             }
+            if ($order->get_billing_email() == 'jandawson@gmail.com' ) {
+                continue;
+            }
             
             $gross_revenue = $order->get_total();
             $discount = $order->get_discount_total();
@@ -818,6 +829,9 @@ class WooCommerceDataService {
         $trial_orders = 0;
         
         foreach ($orders as $order) {
+            if ($order->get_billing_email() == 'jandawson@gmail.com') {
+                continue;
+            }
             if ($this->isTrialOrder($order)) {
                 $trial_orders++;
             }
