@@ -635,6 +635,19 @@ class WooCommerceDataService {
             if (!$order instanceof \WC_Order) {
                 continue;
             }
+
+            // Skip refund objects - get parent order instead
+            if ($order instanceof \WC_Order_Refund) {
+                $parent_id = $order->get_parent_id();
+                if (!$parent_id) {
+                    continue;
+                }
+                $order = wc_get_order($parent_id);
+                if (!$order) {
+                    continue;
+                }
+            }
+
             if ($order->get_billing_email() == 'jandawson@gmail.com' ) {
                 continue;
             }
