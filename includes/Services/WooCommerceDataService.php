@@ -9,12 +9,31 @@ use MFX_Reporting\Services\DebugLogger;
  * Handles fetching and formatting WooCommerce data for reports
  */
 class WooCommerceDataService {
-    
+
     /**
      * Get yesterday's date in Y-m-d format
      */
     public function getYesterdayDate() {
         return date('Y-m-d', strtotime('-1 day'));
+    }
+
+    /**
+     * Safely get billing email from order, handling refund objects
+     */
+    private function getOrderBillingEmail($order) {
+        // Handle refund objects - get parent order
+        if ($order instanceof \WC_Order_Refund) {
+            $parent_id = $order->get_parent_id();
+            if (!$parent_id) {
+                return null;
+            }
+            $order = wc_get_order($parent_id);
+            if (!$order) {
+                return null;
+            }
+        }
+
+        return $order->get_billing_email();
     }
     
      /**
@@ -108,10 +127,11 @@ class WooCommerceDataService {
                 continue;
             }
 
-            if ($order->get_billing_email() == 'jandawson@gmail.com') {
+            $email = $this->getOrderBillingEmail($order);
+            if ($email == 'jandawson@gmail.com') {
                 continue;
             }
-            
+
             $subtotal = $order->get_subtotal();
             $gross_revenue += $subtotal;
         }
@@ -136,10 +156,11 @@ class WooCommerceDataService {
                 continue;
             }
 
-            if ($order->get_billing_email() == 'jandawson@gmail.com') {
+            $email = $this->getOrderBillingEmail($order);
+            if ($email == 'jandawson@gmail.com') {
                 continue;
             }
-            
+
             $total_discounts += $order->get_total_discount();
         }
         
@@ -636,7 +657,12 @@ class WooCommerceDataService {
                 continue;
             }
 
-            // Skip refund objects - get parent order instead
+            $email = $this->getOrderBillingEmail($order);
+            if (!$email || $email == 'jandawson@gmail.com') {
+                continue;
+            }
+
+            // Get parent order if this is a refund object
             if ($order instanceof \WC_Order_Refund) {
                 $parent_id = $order->get_parent_id();
                 if (!$parent_id) {
@@ -646,10 +672,6 @@ class WooCommerceDataService {
                 if (!$order) {
                     continue;
                 }
-            }
-
-            if ($order->get_billing_email() == 'jandawson@gmail.com' ) {
-                continue;
             }
             
             $gross_revenue = $order->get_total();
@@ -842,9 +864,15 @@ class WooCommerceDataService {
         $trial_orders = 0;
         
         foreach ($orders as $order) {
-            if ($order->get_billing_email() == 'jandawson@gmail.com') {
+            if (!$order instanceof \WC_Order) {
                 continue;
             }
+
+            $email = $this->getOrderBillingEmail($order);
+            if (!$email || $email == 'jandawson@gmail.com') {
+                continue;
+            }
+
             if ($this->isTrialOrder($order)) {
                 $trial_orders++;
             }
