@@ -35,6 +35,66 @@ class WooCommerceDataService {
 
         return $order->get_billing_email();
     }
+
+    /**
+     * Check if an order should be excluded from reports
+     * Excludes Janet Dawson (by email or by first name + last name)
+     */
+    private function shouldExcludeOrder($order) {
+        // Handle refund objects - get parent order
+        if ($order instanceof \WC_Order_Refund) {
+            $parent_id = $order->get_parent_id();
+            if (!$parent_id) {
+                return true; // Exclude if we can't get parent
+            }
+            $order = wc_get_order($parent_id);
+            if (!$order) {
+                return true; // Exclude if we can't get parent
+            }
+        }
+
+        // Check by email
+        $email = $order->get_billing_email();
+        if ($email === 'jandawson@gmail.com') {
+            return true;
+        }
+
+        // Check by first name and last name
+        $first_name = trim($order->get_billing_first_name());
+        $last_name = trim($order->get_billing_last_name());
+
+        if (strtolower($first_name) === 'janet' && strtolower($last_name) === 'dawson') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a subscription should be excluded from reports
+     * Excludes Janet Dawson (by email or by first name + last name)
+     */
+    private function shouldExcludeSubscription($subscription) {
+        if (!$subscription instanceof \WC_Subscription) {
+            return true;
+        }
+
+        // Check by email
+        $email = $subscription->get_billing_email();
+        if ($email === 'jandawson@gmail.com') {
+            return true;
+        }
+
+        // Check by first name and last name
+        $first_name = trim($subscription->get_billing_first_name());
+        $last_name = trim($subscription->get_billing_last_name());
+
+        if (strtolower($first_name) === 'janet' && strtolower($last_name) === 'dawson') {
+            return true;
+        }
+
+        return false;
+    }
     
      /**
      * Get comprehensive report data for a date range
@@ -127,8 +187,8 @@ class WooCommerceDataService {
                 continue;
             }
 
-            $email = $this->getOrderBillingEmail($order);
-            if ($email == 'jandawson@gmail.com') {
+            // Exclude Janet Dawson orders
+            if ($this->shouldExcludeOrder($order)) {
                 continue;
             }
 
@@ -156,8 +216,8 @@ class WooCommerceDataService {
                 continue;
             }
 
-            $email = $this->getOrderBillingEmail($order);
-            if ($email == 'jandawson@gmail.com') {
+            // Exclude Janet Dawson orders
+            if ($this->shouldExcludeOrder($order)) {
                 continue;
             }
 
@@ -268,29 +328,34 @@ class WooCommerceDataService {
         ]);
         
         $cancellations = 0;
-        
+
         foreach ($subscriptions as $subscription) {
+            // Exclude Janet Dawson subscriptions
+            if ($this->shouldExcludeSubscription($subscription)) {
+                continue;
+            }
+
             $date_created = $subscription->get_date_created();
             $date_modified = $subscription->get_date_modified();
             $date_cancelled = $subscription->get_date('cancelled');
-            
+
             $effective_cancel_date = $date_cancelled ?: $date_modified;
-            
+
             if (!$effective_cancel_date) {
                 continue;
             }
-            
-            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
-                ? $effective_cancel_date->getTimestamp() 
+
+            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp')
+                ? $effective_cancel_date->getTimestamp()
                 : strtotime($effective_cancel_date);
-                
+
             $start_timestamp = strtotime($date_range['start']);
             $end_timestamp = strtotime($date_range['end']);
-            
+
             if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
                 continue;
             }
-            
+
             $cancellations++;
         }
         
@@ -657,8 +722,8 @@ class WooCommerceDataService {
                 continue;
             }
 
-            $email = $this->getOrderBillingEmail($order);
-            if (!$email || $email == 'jandawson@gmail.com') {
+            // Exclude Janet Dawson orders
+            if ($this->shouldExcludeOrder($order)) {
                 continue;
             }
 
@@ -730,24 +795,29 @@ class WooCommerceDataService {
             if (!$subscription instanceof \WC_Subscription) {
                 continue;
             }
-            
+
+            // Exclude Janet Dawson subscriptions
+            if ($this->shouldExcludeSubscription($subscription)) {
+                continue;
+            }
+
             $date_created = $subscription->get_date_created();
             $date_modified = $subscription->get_date_modified();
             $date_cancelled = $subscription->get_date('cancelled');
-            
+
             $effective_cancel_date = $date_cancelled ?: $date_modified;
-            
+
             if (!$effective_cancel_date) {
                 continue;
             }
-            
-            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp') 
-                ? $effective_cancel_date->getTimestamp() 
+
+            $cancel_timestamp = is_object($effective_cancel_date) && method_exists($effective_cancel_date, 'getTimestamp')
+                ? $effective_cancel_date->getTimestamp()
                 : strtotime($effective_cancel_date);
-                
+
             $start_timestamp = strtotime($date_range['start']);
             $end_timestamp = strtotime($date_range['end']);
-            
+
             if ($cancel_timestamp < $start_timestamp || $cancel_timestamp > $end_timestamp) {
                 continue;
             }
@@ -868,8 +938,8 @@ class WooCommerceDataService {
                 continue;
             }
 
-            $email = $this->getOrderBillingEmail($order);
-            if (!$email || $email == 'jandawson@gmail.com') {
+            // Exclude Janet Dawson orders
+            if ($this->shouldExcludeOrder($order)) {
                 continue;
             }
 
