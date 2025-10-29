@@ -256,23 +256,33 @@ class AdminController {
      * Handle test monthly export AJAX request
      */
     public function handleTestMonthlyExport() {
+        error_log('MFX Reporting: handleTestMonthlyExport called');
+
         if (!wp_verify_nonce($_POST['nonce'], 'mfx_reporting_nonce') || !current_user_can('manage_options')) {
+            error_log('MFX Reporting: Unauthorized access to handleTestMonthlyExport');
             wp_die('Unauthorized');
         }
-        
+
         try {
             $date = sanitize_text_field($_POST['date'] ?? '');
+            error_log('MFX Reporting: Test monthly export requested for date: ' . ($date ?: 'yesterday'));
+
             $action_scheduler_service = new \MFX_Reporting\Services\ActionSchedulerService();
             $result = $action_scheduler_service->triggerMonthlyExport($date ?: null);
-            
+
+            error_log('MFX Reporting: Test monthly export completed successfully');
+
             wp_send_json_success([
                 'message' => $result['message'],
                 'revenue' => $result['revenue'] ?? 0,
                 'order_count' => $result['order_count'] ?? 0,
                 'sheet_name' => $result['sheet_name'] ?? ''
             ]);
-            
+
         } catch (\Exception $e) {
+            error_log('MFX Reporting: Test monthly export failed - ' . $e->getMessage());
+            error_log('MFX Reporting: Stack trace - ' . $e->getTraceAsString());
+
             wp_send_json_error([
                 'message' => $e->getMessage()
             ]);

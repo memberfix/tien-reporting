@@ -100,15 +100,18 @@ class WooCommerceDataService {
      * Get comprehensive report data for a date range
      */
     public function getReportData($period = 'weekly', $date = null) {
+        error_log('MFX Reporting: getReportData called - Period: ' . $period . ', Date: ' . ($date ?: 'null'));
+
         if (empty($date)) {
             $date = $this->getYesterdayDate();
         }
-        
+
         if (!function_exists('wc_get_orders')) {
             throw new \Exception('WooCommerce is not active');
         }
-        
+
         $date_range = $this->getDateRange($period, $date);
+        error_log('MFX Reporting: Date range - Start: ' . $date_range['start'] . ', End: ' . $date_range['end']);
         
         $metrics = [
             'period' => $period,
@@ -707,17 +710,24 @@ class WooCommerceDataService {
      * Get detailed orders for the date range
      */
     private function getDetailedOrders($date_range) {
-        $regular_orders = wc_get_orders([
-            'status' => ['completed', 'processing', 'on-hold'],
-            'date_created' => $date_range['start'] . '...' . $date_range['end'],
-            'limit' => -1
-        ]);
+        try {
+            $regular_orders = wc_get_orders([
+                'status' => ['completed', 'processing', 'on-hold'],
+                'date_created' => $date_range['start'] . '...' . $date_range['end'],
+                'limit' => -1
+            ]);
 
-        $refunded_orders = wc_get_orders([
-            'status' => ['refunded'],
-            'date_modified' => $date_range['start'] . '...' . $date_range['end'],
-            'limit' => -1
-        ]);
+            $refunded_orders = wc_get_orders([
+                'status' => ['refunded'],
+                'date_modified' => $date_range['start'] . '...' . $date_range['end'],
+                'limit' => -1
+            ]);
+
+            error_log('MFX Reporting: getDetailedOrders - Regular orders: ' . count($regular_orders) . ', Refunded orders: ' . count($refunded_orders));
+        } catch (\Exception $e) {
+            error_log('MFX Reporting: getDetailedOrders error - ' . $e->getMessage());
+            return [];
+        }
 
         $detailed_orders = [];
 
@@ -777,7 +787,16 @@ class WooCommerceDataService {
             }
 
             // Get refund date (use date_modified as the refund date)
-            $refund_date = $order->get_date_modified() ? $order->get_date_modified()->date('Y-m-d H:i:s') : $order->get_date_created()->date('Y-m-d H:i:s');
+            $date_modified = $order->get_date_modified();
+            $date_created = $order->get_date_created();
+
+            if ($date_modified && method_exists($date_modified, 'date')) {
+                $refund_date = $date_modified->date('Y-m-d H:i:s');
+            } elseif ($date_created && method_exists($date_created, 'date')) {
+                $refund_date = $date_created->date('Y-m-d H:i:s');
+            } else {
+                $refund_date = date('Y-m-d H:i:s');
+            }
 
             $refund_total = $order->get_total_refunded();
 
