@@ -315,23 +315,29 @@ class WooCommerceDataService {
     
     /**
      * Get number of subscription cancellations (people who canceled, not expired)
+     * Excludes free trial cancellations - only counts paying subscription cancellations
      */
     private function getCancellations($date_range) {
         if (!function_exists('wcs_get_subscriptions')) {
             return 0;
         }
-        
+
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
-        
+
         $cancellations = 0;
 
         foreach ($subscriptions as $subscription) {
             // Exclude Janet Dawson subscriptions
             if ($this->shouldExcludeSubscription($subscription)) {
+                continue;
+            }
+
+            // Exclude free trial cancellations - only count paying subscriptions
+            if ($this->subscriptionHasTrial($subscription)) {
                 continue;
             }
 
@@ -358,7 +364,7 @@ class WooCommerceDataService {
 
             $cancellations++;
         }
-        
+
         return $cancellations;
     }
     
@@ -713,11 +719,10 @@ class WooCommerceDataService {
             'limit' => -1
         ]);
 
-        $orders = array_merge($regular_orders, $refunded_orders);
-        
         $detailed_orders = [];
-        
-        foreach ($orders as $order) {
+
+        // Process regular orders first
+        foreach ($regular_orders as $order) {
             if (!$order instanceof \WC_Order) {
                 continue;
             }
@@ -727,28 +732,16 @@ class WooCommerceDataService {
                 continue;
             }
 
-            // Get parent order if this is a refund object
-            if ($order instanceof \WC_Order_Refund) {
-                $parent_id = $order->get_parent_id();
-                if (!$parent_id) {
-                    continue;
-                }
-                $order = wc_get_order($parent_id);
-                if (!$order) {
-                    continue;
-                }
-            }
-            
             $gross_revenue = $order->get_total();
             $discount = $order->get_discount_total();
             $refund_total = $order->get_total_refunded();
             $sub_revenue = $order->get_subtotal();
             $net_revenue = $sub_revenue - $discount - $refund_total;
-            
+
             $is_trial = $this->isTrialOrder($order);
-            
+
             $is_new_member = $this->isNewMemberOrder($order);
-            
+
             $products = [];
             foreach ($order->get_items() as $item) {
                 $product = $item->get_product();
@@ -756,7 +749,7 @@ class WooCommerceDataService {
                     $products[] = $product->get_name();
                 }
             }
-            
+
             $detailed_orders[] = [
                 'order_id' => $order->get_id(),
                 'date' => $order->get_date_created()->date('Y-m-d H:i:s'),
@@ -771,26 +764,71 @@ class WooCommerceDataService {
                 'products' => implode(', ', $products)
             ];
         }
-        
+
+        // Process refunded orders separately - show as negative amounts with refund date
+        foreach ($refunded_orders as $order) {
+            if (!$order instanceof \WC_Order) {
+                continue;
+            }
+
+            // Exclude Janet Dawson orders
+            if ($this->shouldExcludeOrder($order)) {
+                continue;
+            }
+
+            // Get refund date (use date_modified as the refund date)
+            $refund_date = $order->get_date_modified() ? $order->get_date_modified()->date('Y-m-d H:i:s') : $order->get_date_created()->date('Y-m-d H:i:s');
+
+            $refund_total = $order->get_total_refunded();
+
+            $is_trial = $this->isTrialOrder($order);
+
+            $is_new_member = false; // Refunds are not new members
+
+            $products = [];
+            foreach ($order->get_items() as $item) {
+                $product = $item->get_product();
+                if ($product) {
+                    $products[] = $product->get_name();
+                }
+            }
+
+            // Add refund as a negative entry
+            $detailed_orders[] = [
+                'order_id' => $order->get_id() . ' (REFUND)',
+                'date' => $refund_date,
+                'customer_name' => trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()),
+                'customer_email' => $order->get_billing_email(),
+                'gross_revenue' => -$refund_total,
+                'net_revenue' => -$refund_total,
+                'discounts' => 0,
+                'refunds' => $refund_total,
+                'is_trial' => $is_trial,
+                'is_new_member' => $is_new_member,
+                'products' => implode(', ', $products)
+            ];
+        }
+
         return $detailed_orders;
     }
     
     /**
      * Get detailed cancellations for the date range
+     * Excludes free trial cancellations - only includes paying subscription cancellations
      */
     private function getDetailedCancellations($date_range) {
                 if (!function_exists('wcs_get_subscriptions')) {
             return [];
         }
-        
+
         $subscriptions = wcs_get_subscriptions([
             'subscription_status' => ['cancelled'],
             'date_modified' => $date_range['start'] . '...' . $date_range['end'],
             'limit' => -1
         ]);
-        
+
         $detailed_cancellations = [];
-        
+
         foreach ($subscriptions as $subscription) {
             if (!$subscription instanceof \WC_Subscription) {
                 continue;
@@ -798,6 +836,11 @@ class WooCommerceDataService {
 
             // Exclude Janet Dawson subscriptions
             if ($this->shouldExcludeSubscription($subscription)) {
+                continue;
+            }
+
+            // Exclude free trial cancellations - only count paying subscriptions
+            if ($this->subscriptionHasTrial($subscription)) {
                 continue;
             }
 
