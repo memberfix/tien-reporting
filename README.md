@@ -1,215 +1,185 @@
-# MFX Reporting - WooCommerce Reporting Plugin
+# MFX Reporting
 
-A comprehensive WooCommerce reporting plugin that provides detailed sales analytics and integrates with Google Sheets for data export and visualization.
+A WordPress plugin that provides WooCommerce sales reporting with automated Google Sheets export. Designed for subscription-based businesses using WooCommerce Subscriptions.
 
 ## Features
 
-- **Sales Analytics**: Track total sales, revenue, orders, and customer metrics
-- **Product Performance**: Analyze top-selling products and category performance
-- **Customer Insights**: Monitor customer lifetime value and behavior
-- **Google Sheets Integration**: Export reports directly to Google Sheets
-- **Scheduled Reports**: Automated report generation and export
-- **Modern Dashboard**: Clean, responsive admin interface
-- **Customizable KPIs**: Enable/disable specific metrics based on your needs
+- **Comprehensive Sales Metrics**: Net revenue, gross revenue, discounts, refunds
+- **Subscription Analytics**: Trial starts, new members, cancellations, net subscriber growth
+- **Customer Lifetime Value**: Rolling LTV calculation based on active subscribers
+- **Google Sheets Integration**: OAuth2 authentication with automatic data export
+- **Scheduled Reports**: Automated weekly (Monday) and monthly (1st of month) exports
+- **Detailed Data Export**: Individual order details and cancellation reasons
+- **Manual Testing**: Test exports with custom date overrides
 
 ## Requirements
 
-- WordPress 5.0 or higher (tested up to 6.3)
-- WooCommerce 3.0 or higher (tested up to 8.0)
-- PHP 7.4 or higher
-- Composer (for dependency management)
-- Google Cloud Project with OAuth2 credentials
+- PHP 7.4+
+- WordPress 5.0+ (tested up to 6.3)
+- WooCommerce 3.0+ (tested up to 8.0)
+- WooCommerce Subscriptions
+- Action Scheduler (bundled with WooCommerce Subscriptions)
+- Composer
 
 ## Installation
 
-1. **Download and Extract**
+1. Clone or download the plugin to your WordPress plugins directory:
    ```bash
-   # Clone or download the plugin to your WordPress plugins directory
    cd /path/to/wordpress/wp-content/plugins/
    git clone [repository-url] mfx-reporting
    cd mfx-reporting
    ```
 
-2. **Install Dependencies**
+2. Install dependencies:
    ```bash
    composer install --no-dev --optimize-autoloader
    ```
 
-3. **Activate Plugin**
-   - Go to WordPress Admin → Plugins
-   - Find "MFX Reporting" and click "Activate"
+3. Activate the plugin via WordPress Admin > Plugins
 
 ## Google Sheets Setup
 
 ### 1. Create Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the Google Sheets API:
-   - Go to "APIs & Services" → "Library"
-   - Search for "Google Sheets API"
-   - Click "Enable"
-   - Also enable "Google Drive API" for file access
+2. Create a new project or select an existing one
+3. Enable the following APIs:
+   - Google Sheets API
+   - Google Drive API
 
 ### 2. Create OAuth 2.0 Credentials
 
-1. Go to "APIs & Services" → "Credentials"
-2. Click "Create Credentials" → "OAuth client ID"
-3. Configure consent screen if prompted:
+1. Go to APIs & Services > Credentials
+2. Click "Create Credentials" > "OAuth client ID"
+3. Configure the OAuth consent screen:
    - Choose "External" user type
-   - Fill required fields (App name, User support email, Developer contact)
-   - Add scopes: `https://www.googleapis.com/auth/spreadsheets` and `https://www.googleapis.com/auth/drive.readonly`
+   - Add scopes: `spreadsheets` and `drive.readonly`
 4. Select "Web application" as application type
-5. Add authorized redirect URI: `https://yourdomain.com/wp-admin/admin.php?page=mfx-reporting&action=oauth_callback`
-6. Click "Create" and save the Client ID and Client Secret
-
-### 3. Configure WordPress Constants
-
-1. Add the following constants to your `wp-config.php` file:
-   ```php
-   define('MFX_GOOGLE_CLIENT_ID', 'your-client-id-here');
-   define('MFX_GOOGLE_CLIENT_SECRET', 'your-client-secret-here');
+5. Add authorized redirect URI:
    ```
-
-### 4. Create Google Sheet
-
-1. Create a new Google Sheet
-2. Copy the spreadsheet ID from the URL:
+   https://yourdomain.com/wp-admin/admin.php?page=mfx-reporting&action=oauth_callback
    ```
-   https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit
-   ```
+6. Save the Client ID and Client Secret
 
-## Plugin Configuration
+### 3. Configure WordPress
 
-1. **Navigate to Settings**
-   - Go to WordPress Admin → MFX Reporting
+Add the following constants to your `wp-config.php`:
 
-2. **Google Sheets Authentication**
-   - Click "Connect to Google Sheets" to start OAuth flow
-   - You'll be redirected to Google to authorize the application
-   - Grant permissions for Sheets and Drive access
-   - You'll be redirected back to WordPress upon success
-
-3. **Google Sheets Configuration**
-   - Enter your Google Spreadsheet ID
-   - Test the connection to verify access
-
-4. **Report Settings**
-   - Choose report frequency (Manual, Daily, Weekly, Monthly)
-   - Configure scheduled exports
-   - Save settings
+```php
+define('MFX_GOOGLE_CLIENT_ID', 'your-client-id-here');
+define('MFX_GOOGLE_CLIENT_SECRET', 'your-client-secret-here');
+```
 
 ## Usage
 
-### Dashboard
-- View key performance indicators
-- Monitor sales trends
-- Quick overview of business metrics
+### Initial Setup
 
-### Reports
-- Generate custom reports by date range
-- Export data to Google Sheets
-- View detailed product and customer analytics
+1. Navigate to WordPress Admin > MFX Reporting
+2. Click "Connect to Google Sheets" to authenticate
+3. Grant permissions in the Google OAuth popup
+4. Select spreadsheets for weekly and monthly reports
+5. Save your scheduled report preferences
 
-### Settings
-- Configure Google Sheets integration
-- Customize report frequency
-- Enable/disable specific metrics
+### Scheduled Reports
+
+Reports are automatically generated:
+- **Weekly**: Every Monday at midnight (covers the previous 7 days ending Sunday)
+- **Monthly**: 1st of each month at midnight (covers the entire previous month)
+
+For example, a monthly report running on January 1st will report on all of December.
+
+Each export creates a new sheet in your selected spreadsheet with the date range as the sheet name.
+
+### Manual Testing
+
+Use the "Test Export" buttons to manually trigger exports with optional custom dates. This is useful for:
+- Verifying the connection works
+- Generating historical reports
+- Testing before enabling scheduled exports
+
+## Metrics Tracked
+
+| Metric | Description |
+|--------|-------------|
+| Net Revenue | Gross revenue minus discounts and refunds |
+| Gross Revenue | Total order subtotals (excludes taxes, shipping, fees) |
+| Discounts Given | Total discount amounts applied |
+| Refunds | Total refund amounts processed |
+| Trials Started | Number of free trial subscriptions initiated |
+| New Members | New paid subscribers (excludes trials) |
+| Cancellations | Paid subscription cancellations (excludes trial cancellations) |
+| Net Paid Subscriber Growth | New members minus cancellations |
+| Rolling LTV | Average revenue per active customer (monthly normalized) |
+| Trial Order Percentage | Percentage of orders containing trials |
+
+## Export Format
+
+Each Google Sheets export includes:
+
+1. **Summary Section**: All metrics with period dates
+2. **Detailed Orders**: Order ID, date, customer, email, subtotal, discount, total, trial/new member flags
+3. **Detailed Cancellations**: Subscription ID, date, customer, email, cancellation reason
 
 ## File Structure
 
 ```
 mfx-reporting/
-├── assets/
-│   ├── css/
-│   │   └── admin.css
-│   └── js/
-│       └── admin.js
+├── mfx-reporting.php          # Main plugin file
+├── composer.json              # Dependencies
 ├── includes/
-│   ├── Controllers/
-│   │   └── AdminController.php
 │   ├── Core/
-│   │   └── Plugin.php
-│   ├── Services/
-│   │   ├── ActionSchedulerService.php
-│   │   ├── DebugLogger.php
-│   │   ├── GoogleSheetsService.php
-│   │   └── WooCommerceDataService.php
-│   └── Views/
-│       └── AdminView.php
-├── composer.json
-├── mfx-reporting.php
-├── CLAUDE.md
-└── README.md
+│   │   └── Plugin.php         # Plugin orchestration
+│   ├── Controllers/
+│   │   └── AdminController.php # Admin UI and AJAX handlers
+│   ├── Views/
+│   │   └── AdminView.php      # HTML rendering
+│   └── Services/
+│       ├── GoogleSheetsService.php      # Google API integration
+│       ├── WooCommerceDataService.php   # Data extraction
+│       ├── ActionSchedulerService.php   # Scheduled tasks
+│       └── DebugLogger.php              # Debug logging
+└── assets/
+    ├── css/admin.css          # Admin styles
+    └── js/admin.js            # Admin JavaScript
 ```
-
-## Available KPIs
-
-- **Net Revenue**: Total sales minus discounts and refunds
-- **Gross Revenue**: Total sales excluding taxes and shipping
-- **Discounts Given**: Total discount amounts applied
-- **Refunds**: Total refunds processed
-- **Trials Started**: New trial subscriptions initiated
-- **New Members**: New paying subscribers
-- **Cancellations**: Subscription cancellations
-- **Net Paid Subscriber Growth**: New members minus cancellations
-- **Rolling LTV**: Customer lifetime value calculation
-- **Trial Order Percentage**: Percentage of orders that are trials
-
-## Scheduled Reports
-
-The plugin supports automated report generation:
-
-- **Manual**: Generate reports on-demand only
-- **Daily**: Generate reports every day at midnight
-- **Weekly**: Generate reports every Monday
-- **Monthly**: Generate reports on the 1st of each month
 
 ## Troubleshooting
 
-### Google Sheets Connection Issues
+### OAuth Authentication Failed
 
-1. **OAuth Authentication Failed**
-   - Verify `MFX_GOOGLE_CLIENT_ID` and `MFX_GOOGLE_CLIENT_SECRET` constants are set
-   - Check that redirect URI in Google Cloud Console matches your site URL
-   - Ensure constants contain valid OAuth credentials
+- Verify `MFX_GOOGLE_CLIENT_ID` and `MFX_GOOGLE_CLIENT_SECRET` are set in `wp-config.php`
+- Check that the redirect URI in Google Cloud Console exactly matches your site URL
+- Ensure your site uses HTTPS
 
-2. **Permission Denied**
-   - Verify you have access to the Google Spreadsheet
-   - Check spreadsheet ID is correct
-   - Ensure spreadsheet is not private or restricted
+### Permission Denied
 
-3. **API Not Enabled**
-   - Enable both Google Sheets API and Google Drive API in Google Cloud Console
-   - Wait a few minutes for activation
-   - Check OAuth consent screen is properly configured
+- Verify you have edit access to the selected Google Spreadsheet
+- Check that both Google Sheets API and Google Drive API are enabled
 
-### Plugin Issues
+### Missing Dependencies
 
-1. **Missing Dependencies**
-   ```bash
-   composer install --no-dev 
-   ```
+```bash
+composer install --no-dev --optimize-autoloader
+```
 
-2. **WooCommerce Not Active**
-   - Ensure WooCommerce plugin is installed and activated
+### WooCommerce Not Detected
 
-3. **PHP Version**
-   - Verify PHP 7.4 or higher is installed
+The plugin requires WooCommerce to be installed and activated. It will display an admin notice if WooCommerce is not found.
 
-## Support
+### Scheduled Reports Not Running
 
-For support and feature requests, please contact the development team or create an issue in the project repository.
+- Verify Action Scheduler is installed (bundled with WooCommerce Subscriptions)
+- Check that the report frequency is enabled in settings
+- View scheduled actions at Tools > Scheduled Actions
+
+## Development
+
+For development with dev dependencies:
+
+```bash
+composer install
+```
 
 ## License
 
-This plugin is licensed under the GPL v2 or later.
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Google Sheets integration
-- Sales analytics dashboard
-- Scheduled reporting
-- Responsive admin interface
+GPL v2 or later

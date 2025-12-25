@@ -147,10 +147,11 @@ class WooCommerceDataService {
                 $start_date = date('Y-m-d', strtotime($date . ' -6 days')) . ' 00:00:00';
                 break;
             case 'monthly':
-                $refForStart = new \DateTime($date);
-                $refForEnd = new \DateTime($date);
-                $start_date = $refForStart->modify('first day of last month')->format('Y-m-d') . ' 00:00:00';
-                $end_date = $refForEnd->modify('last day of last month')->format('Y-m-d') . ' 23:59:59';
+                // For monthly reports, always report on the complete month containing the given date
+                $refDate = new \DateTime($date);
+                $start_date = $refDate->modify('first day of this month')->format('Y-m-d') . ' 00:00:00';
+                $refDate = new \DateTime($date); // Reset after modify
+                $end_date = $refDate->modify('last day of this month')->format('Y-m-d') . ' 23:59:59';
                 break;
             default:
                 $start_date = $date . ' 00:00:00';
